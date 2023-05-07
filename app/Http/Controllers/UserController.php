@@ -151,14 +151,15 @@ class UserController extends Controller
     {
         $user = User::find(auth()->user()->id);
         $clubs = $user->clubs()->paginate(6);
-        
+
         return response()->json($clubs, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function myEvents(){
+    public function myEvents()
+    {
         $user = User::find(auth()->user()->id);
         $events = $user->events()->paginate(6);
-        
+
         return response()->json($events, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
@@ -167,6 +168,4 @@ class UserController extends Controller
         $user = auth()->user();
         return response()->json(['user' => $user], 200, [], JSON_UNESCAPED_UNICODE);
     }
-
-    
 }

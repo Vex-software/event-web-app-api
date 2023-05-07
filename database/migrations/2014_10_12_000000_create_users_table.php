@@ -22,6 +22,7 @@ return new class extends Migration
             $table->enum('role', ['admin', 'user', 'club_manager'])->default('user');
             // $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

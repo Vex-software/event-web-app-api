@@ -19,6 +19,7 @@ class ClubFactory extends Factory
         return [
             'name' => $this->faker->company(),
             'field' => $this->faker->word(),
+            'manager_id' => \App\Models\User::factory()->create(['role' => 'club_manager'])->id,
         ];
     }
 }

@@ -16,7 +16,7 @@ use App\Http\Controllers\DBController;
 
 Route::get('/', function () {
     return view('welcome');
-});
+})->name('welcome');
 
 Route::get('clubs', [DBController::class, 'clubs'])->name('clubs.index');
 Route::get('users', [DBController::class, 'users'])->name('users.index');

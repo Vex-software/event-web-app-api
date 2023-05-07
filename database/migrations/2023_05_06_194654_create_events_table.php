@@ -14,13 +14,20 @@ return new class extends Migration
         Schema::create('events', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('title');
             $table->text('description')->nullable();
             $table->dateTime('start_time');
-            $table->dateTime('end_time');
+            $table->dateTime('end_time')->nullable();
+            $table->string('location')->nullable();
+            $table->string('image')->nullable();
+
             $table->unsignedBigInteger('club_id');
-            
-            $table->foreign('club_id')->references('id')->on('clubs')->onDelete('cascade');
+            $table->unsignedBigInteger('category_id');
             $table->timestamps();
+
+            $table->foreign('category_id')->references('id')->on('event_categories');
+            $table->foreign('club_id')->references('id')->on('clubs')->onDelete('cascade');
+
         });
     }
 
@@ -29,6 +36,11 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('events', function (Blueprint $table) {
+            $table->dropForeign(['category_id']);
+            $table->dropColumn('category_id');
+        });
+
         Schema::dropIfExists('events');
     }
 };
