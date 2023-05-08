@@ -13,15 +13,10 @@ class ClubManagerController extends Controller
 {
     public function createEvent(Request $request)
     {
+
         $user = auth()->user();
-        if (!$user) {
-            return response()->json(['error' => 'Yetkisiz istek'], 401);
-        }
         $club = $user->managerOfClub;
-        if (!$club) {
-            return response()->json(['error' => 'Kulüp yöneticisi değilsiniz'], 403);
-        }
-    
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string',
             'title' => 'required|string',
@@ -30,11 +25,12 @@ class ClubManagerController extends Controller
             'end_time' => 'date',
             'category_id' => 'required|integer',
         ]);
-    
+        
+
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()], 422);
         }
-    
+
         $event = Event::create([
             'name' => $request->name,
             'title' => $request->title,
@@ -46,11 +42,10 @@ class ClubManagerController extends Controller
             'category_id' => $request->category_id,
             'club_id' => $club->id,
         ]);
-    
+
         return response()->json([
             'message' => 'Etkinlik başarıyla oluşturuldu.',
             'event' => $event,
         ], 201);
     }
-    
 }
