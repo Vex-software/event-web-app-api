@@ -86,7 +86,6 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/update-event/{id}', [AdminController::class, 'updateEvent']); // Etkinlik bilgilerini güncelle
         Route::post('/delete-event/{id}', [AdminController::class, 'deleteEvent']); // Etkinliği sil
 
-
         Route::post('/create-club', [AdminController::class, 'createClub']); // Kulüp oluşturma islemi simdilik adminde.
         Route::get('/update-club/{id}', [AdminController::class, 'updateClub']); // Kulüp bilgilerini güncelle
         Route::post('/delete-club/{id}', [AdminController::class, 'deleteClub']); // Kulübü silme islemi simdilik adminde.
@@ -96,8 +95,6 @@ Route::middleware('auth:api')->group(function () {
 
         Route::post('/restore-event/{id}', [AdminController::class, 'restoreEvent']); // Etkinliği geri yükle
         Route::post('/restore-club/{id}', [AdminController::class, 'restoreClub']); // Kulübü geri yükle
-
-
     });
 
 
