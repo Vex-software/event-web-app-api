@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('phone_number');
             $table->string('website');
             $table->string('founded_year');
-            $table->string('social_media_links');
+            $table->string('social_media_links', 1000);
             
             $table->foreignId('manager_id')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
