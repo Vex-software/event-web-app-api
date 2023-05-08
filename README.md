@@ -2,7 +2,7 @@
 
 
 ```
-.env.example dosyasını .env olarak değiştir.
+.env.example dosyasını .env olarak değiştir ve veritabanı ayarlarını gir
 ```
 
 ```
