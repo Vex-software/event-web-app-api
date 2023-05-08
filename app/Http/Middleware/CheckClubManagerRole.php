@@ -18,7 +18,7 @@ class CheckClubManagerRole
     {
         $userRole = User::findOrFail(auth()->user()->id)->role;
         if ($userRole != 'club_manager') {
-            return response()->json(['error' => 'Bir Kulüp Yöneticisi Değilsiniz'], 403);
+            return response()->json(['error' => 'Yetkiniz yok'], 403);
         }
         return $next($request);
     }

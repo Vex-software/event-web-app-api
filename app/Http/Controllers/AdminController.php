@@ -29,6 +29,7 @@ class AdminController extends Controller
         return response()->json(['message' => 'Kullanıcının rolü başarıyla güncellendi.'], 200);
     }
 
+
     public function deleteUser($id)
     {
         $user = User::withTrashed()->findOrFail($id);
