@@ -9,6 +9,11 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ClubManagerController;
+use App\Http\Controllers\GoogleController;
+
+
+
+
 
 Route::get('/', function () {
     return response()->json(['message' => 'Buyrun burası API!']);

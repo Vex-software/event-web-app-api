@@ -12,6 +12,12 @@ Route::get('/', function () {
 })->name('welcome');
 
 
+Route::get('/login', function () {
+    return view('login.google');
+})->name('login');
+
+Route::get('auth/google', 'App\Http\Controllers\GoogleController@redirectToGoogle');
+Route::get('auth/google/callback', 'App\Http\Controllers\GoogleController@handleGoogleCallback');
 
 
 Route::get('clubs', [DBController::class, 'clubs'])->name('clubs.index');
@@ -19,6 +25,3 @@ Route::get('users', [DBController::class, 'users'])->name('users.index');
 
 
 Route::get('clubs/{clubId}/katil/{userId}', [DBController::class, 'joinClub'])->name('clubs.katil');
-
-
-
