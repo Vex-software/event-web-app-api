@@ -12,13 +12,18 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Http\JsonResponse;
 
 class AuthController extends Controller
 {
 
-
-
-    public function register(Request $request)
+    /**
+     * Login user and create token
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function register(Request $request): JsonResponse
     {
         $messages = [
             'name.required' => 'İsim zorunludur',
@@ -91,7 +96,13 @@ class AuthController extends Controller
     }
 
 
-    public function login(Request $request)
+    /**
+     * Login user and create token
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function login(Request $request): JsonResponse
     {
         $rules = [
             'email' => 'required|email',
@@ -130,8 +141,6 @@ class AuthController extends Controller
 
         $accessToken = $user->createToken('authToken')->accessToken;
 
-        // eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiZjFlOGVhMjg2NDJmZjgwOTY4ZDllOTYwNGFiZTc4MjQ4ODg5Yzk4M2FkYWE2ZDA1ZWU5OGUyZmE1ZTAyMmJhZWY4ZmY5MWFkNzM2YzdhYjUiLCJpYXQiOjE2ODMzNjQ3MTEuOTY1MTQ2LCJuYmYiOjE2ODMzNjQ3MTEuOTY1MTUsImV4cCI6MTcxNDk4NzExMS45NDc4MjQsInN1YiI6IjIiLCJzY29wZXMiOltdfQ.auhQ6DZ2QTXtxr_uWNhtbunXDmZyLA1Dr0ivaLcSMrAxmFHOQ_5u41bsI0bWJUdUDBs7ahAg_mIZc-sY1GWCpPY_m2zL1QJsad4dWeDDq0LMArqsctZM5I6aQFZsBc2p8LytMPxW06yrqyq0xcA2yXe4C01RHtu8yrVbxqftGJN3XDEPwxL2jFhP5NzwvbdR5tznMQNQutje6YHeRVfwUWiPOFWYUjKWusJc1AdRG2lSHgbi9xWsRQZ-tn3-bF_exB8zUR3T7mhwUV9aY0voF4o4FF3F7wP7JAMTKcyi2VLs7sdohkY6kbgeqs2kRLasHfmo-uVOM4756yuE3wSDlkP1hfaecxg_kdfbcpeCr4GA0PTCbY_hCixUTBLxGFlBknqvnyXEWhGW_3dPPRfKF8ufyNtDaOg3RGZP-o0P01mdlLrxvaRrUDR-wpHQMO4wXPA8RTrnfJfovZOr55zx4sW9OeQyqdDmGE-zny5IRXxpVCkwak67Y8cnMGU3WDw4TCbIsgzvLKtCRfsZkmMzV373t-BnOxwguZ8zKsqMx8ECWOaW8c6rj9s6-yJaprP_cGyBHkqWnimGLfUzp-glQGJb1v7qrxtm91paU3qFVz5zwflzinVEbwFUzyVbLXD19EY1L9rFIRY7GlYpRhw0aOmqIO7OOyR_shDszT6sLao
-
         return response()->json([
             'user' => $user,
             'access_token' => $accessToken,
@@ -139,8 +148,13 @@ class AuthController extends Controller
         ]);
     }
 
-
-    public function logout(Request $request)
+    /**
+     * Logout user (Revoke the token)
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function logout(Request $request): JsonResponse
     {
         $request->user()->token()->revoke();
         return response()->json([
@@ -149,8 +163,12 @@ class AuthController extends Controller
         ]);
     }
 
-
-    public function lostPassword(Request $request)
+    /**
+     * Send Email for reset password
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function lostPassword(Request $request): JsonResponse
     {
         $rules = [
             'email' => 'required|email'
@@ -180,15 +198,19 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // $user->sendPasswordResetNotification($request->email);
+        $user->sendPasswordResetNotification($request->email);
 
         return response()->json([
             'message' => 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi'
         ]);
     }
 
-
-    public function resetPassword(Request $request)
+    /**
+     * Reset password
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function resetPassword(Request $request): JsonResponse
     {
         $request->validate([
             'email' => 'required|email|exists:users,email',
@@ -205,7 +227,12 @@ class AuthController extends Controller
         return response()->json(['error' => 'E-posta gönderimi başarısız oldu.'], 500);
     }
 
-    public function verifyEmail(Request $request)
+    /**
+     * Verify email
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function verifyEmail(Request $request): JsonResponse
     {
         $user = User::findOrFail($request->id);
 
@@ -222,7 +249,12 @@ class AuthController extends Controller
         return response()->json(['success' => 'E-posta adresiniz başarıyla doğrulandı'], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function resendEmail(Request $request)
+    /**
+     * Resend email
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function resendEmail(Request $request): JsonResponse
     {
         if ($request->user()->hasVerifiedEmail()) {
             return response()->json(['message' => 'Kullanıcı zaten onaylanmış.'], 400, [], JSON_UNESCAPED_UNICODE);

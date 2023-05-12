@@ -6,16 +6,24 @@ use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use \Symfony\Component\HttpFoundation\RedirectResponse;
 
 class GoogleController extends Controller
 {
-    public function redirectToGoogle() : \Symfony\Component\HttpFoundation\RedirectResponse
+    /**
+     * Redirect the user to the Google authentication page.
+     * @return RedirectResponse
+     */
+    public function redirectToGoogle() : RedirectResponse
     {
         return Socialite::driver('google')->redirect();  // google'a yönlendir
     }
-
-
-    public function handleGoogleCallback() : \Illuminate\Http\RedirectResponse
+    
+    /**
+     * Obtain the user information from Google.
+     * @return RedirectResponse
+     */
+    public function handleGoogleCallback() : RedirectResponse
     {
         try {
             $user = Socialite::driver('google')->user();
@@ -32,7 +40,12 @@ class GoogleController extends Controller
     }
 
 
-    // bu metodu kullanmak icin once veritabaninda google_id alani gerekli
+    /**
+     * If a user has registered before using social auth, return the user
+     * else, create a new user object.
+     * @param $googleUser
+     * @return User
+     */
     private function findOrCreateUser($googleUser) : User
     {
         $authUser = User::where('google_id', $googleUser->id)->first();

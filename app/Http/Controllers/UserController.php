@@ -20,8 +20,8 @@ use App\Models\Role;
 class UserController extends Controller
 {
     /**
-     * Search and filter users
-     *
+     * Get all users with search
+     * @param Request $request
      * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
