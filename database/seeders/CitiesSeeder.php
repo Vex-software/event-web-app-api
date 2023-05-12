@@ -343,7 +343,7 @@ class CitiesSeeder extends Seeder
     public function run(): void
     {
         foreach ($this->cities as $city => $districts) {
-            $city = City::create([
+            $city = City::firstOrCreate([
                 'city_name' => $city
             ]);
         }

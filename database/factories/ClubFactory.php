@@ -17,23 +17,20 @@ class ClubFactory extends Factory
      */
     public function definition(): array
     {
-        $manager = User::factory()->create([
+        $manager = User::factory()->create([ // create a user with role club_manager
             'role_id' => Role::where('slug', 'club_manager')->first()->id
         ]);
 
 
-
         return [
-            'name' => $this->faker->name(),
+            'name' => $this->faker->company(),
             'title' => $this->faker->title(),
-            'description' => $this->faker->paragraph(),
+            'description' => $this->faker->paragraph(1),
             'logo' => $this->faker->imageUrl(),
             'email' => $this->faker->companyEmail(),
             'phone_number' => $this->faker->unique()->numerify('+90-5##-###-##-##'),
             'website' => $this->faker->url(),
             'founded_year' => $this->faker->dateTime(),
-          
-
             'manager_id' => $manager->id,
         ];
     }

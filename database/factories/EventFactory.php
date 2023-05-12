@@ -22,7 +22,7 @@ class EventFactory extends Factory
         return [
             'name' => $this->faker->sentence(3),
             'title' => $this->faker->sentence(3),
-            'description' => $this->faker->paragraph(2),
+            'description' => $this->faker->paragraph(1),
             'start_time' => $this->faker->dateTimeBetween('now', '+1 year'),
             'end_time' => $this->faker->dateTimeBetween('+1 year', '+2 years'),
             'location' => $this->faker->address,

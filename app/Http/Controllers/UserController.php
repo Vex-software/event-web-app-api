@@ -15,32 +15,95 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Contracts\Validation\Rule;
 use Illuminate\Http\JsonResponse;
+use App\Models\Role;
 
 class UserController extends Controller
 {
-    public function index()
+    /**
+     * Search and filter users
+     *
+     * @return JsonResponse
+     */
+    public function index(Request $request): JsonResponse
     {
+        if ($request->has('name')) {
+            $users = User::where('name', 'LIKE', '%' . $request->name . '%')->paginate(6);
+            return $users;
+        }
+
+        if ($request->has('city')) {
+            $validatedData = $request->validate([
+                'city' => 'exists:cities,city_name',
+            ]);
+            if ($validatedData) {
+                $users = User::whereHas('city', function ($q) use ($request) {
+                    $q->where('city_name', 'LIKE', '%' . $request->city . '%');
+                })->paginate(6);
+                return $users;
+            }
+        }
+
+        if ($request->has('role')) {
+            $validatedData = $request->validate([
+                'role' => 'exists:roles,slug',
+            ]);
+
+            if ($validatedData) {
+                $users = Role::where('slug', $request->role)->first()->users;
+                return $users;
+            }
+        }
+
+        if ($request->has('club')) {
+            $users = User::whereHas('clubs', function ($q) use ($request) {
+                $q->where('name', 'LIKE', '%' . $request->club . '%');
+            })->paginate(6);
+            return $users;
+        }
+
+        if ($request->has('event')) {
+            $users = User::whereHas('events', function ($q) use ($request) {
+                $q->where('name', 'LIKE', '%' . $request->event . '%');
+            })->paginate(6);
+            return $users;
+        }
+
         $users = User::paginate(6);
         return $users;
     }
 
-    public function show(int $id) : JsonResponse
+    /**
+     * Show a specific user
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function show(int $id): JsonResponse
     {
         $user = User::findOrFail($id);
         $userClubs = $user->clubs()->paginate(6);
         return response()->json([
             'user' => $user,
-            'userClubs' => $userClubs
+            'user-clubs' => $userClubs
         ], 200);
     }
 
-    public function userClubs($userId)
+    /**
+     * Get user's clubs
+     * @param int $userId
+     * @return JsonResponse
+     */
+    public function userClubs(int $userId): JsonResponse
     {
         $clubs = User::find($userId)->clubs()->paginate(6);
         return response()->json($clubs, 200);
     }
 
-    public function joinClub(string $clubId)
+    /**
+     * Join a club
+     * @param int $clubId
+     * @return JsonResponse
+     */
+    public function joinClub(int $clubId): JsonResponse
     {
         // Kullanıcıyı doğrula
         $user = auth()->user();
@@ -69,7 +132,12 @@ class UserController extends Controller
         }
     }
 
-    public function leaveClub(int $clubId)
+    /**
+     * Leave a club
+     * @param int $clubId
+     * @return JsonResponse
+     */
+    public function leaveClub(int $clubId): JsonResponse
     {
         // Kullanıcıyı doğrula
         $user = auth()->user();
@@ -95,7 +163,12 @@ class UserController extends Controller
         }
     }
 
-    public function joinEvent(string $eventId)
+    /**
+     * Join an event
+     * @param int $eventId
+     * @return JsonResponse
+     */
+    public function joinEvent(int $eventId): JsonResponse
     {
         // Kullanıcıyı doğrula
         $user = auth()->user();
@@ -123,7 +196,12 @@ class UserController extends Controller
         }
     }
 
-    public function leaveEvent(string $eventId)
+    /**
+     * Leave an event
+     * @param int $eventId
+     * @return JsonResponse
+     */
+    public function leaveEvent(int $eventId): JsonResponse
     {
         // Kullanıcıyı doğrula
         $user = auth()->user();
@@ -149,7 +227,12 @@ class UserController extends Controller
         }
     }
 
-    public function updatePassword(Request $request)
+    /**
+     * Update user password
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function updatePassword(Request $request): JsonResponse
     {
         $user = User::find(auth()->user()->id);
         if (!$user) {
@@ -178,10 +261,14 @@ class UserController extends Controller
         }
     }
 
-    public function updateProfile(Request $request)
+    /**
+     * Update user profile
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function updateProfile(Request $request): JsonResponse
     {
         $user = User::find(auth()->user()->id);
-
 
         if (!$user) {
             return response()->json(['error' => 'Kullanıcı bulunamadı'], 404, [], JSON_UNESCAPED_UNICODE);
@@ -213,10 +300,7 @@ class UserController extends Controller
             ], 422);
         }
 
-
         $phoneNumber = preg_replace('/[^0-9]/', '', $request->input('phone_number'));
-
-
 
         $length = strlen($phoneNumber);
         if ($length == 10) { // Uzunluğu 10 ise başına +90 ekle
@@ -226,7 +310,6 @@ class UserController extends Controller
         }
 
         $phoneNumber = preg_replace('/(\d{2})(\d{3})(\d{3})(\d{2})(\d{2})/', '+$1-$2-$3-$4-$5', $phoneNumber);
-
 
         $user->name = $request->input('name');
         $user->surname = $request->input('surname');
@@ -250,7 +333,11 @@ class UserController extends Controller
         return response()->json(['success' => 'Profil güncellendi'], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function deletePhoto()
+    /**
+     * Delete authenticated user profile photo
+     * @return JsonResponse
+     */
+    public function deletePhoto(): JsonResponse
     {
         $user = User::find(auth()->user()->id);
         if (!$user) {
@@ -267,19 +354,26 @@ class UserController extends Controller
 
             return response()->json(['success' => 'Profil fotoğrafı silindi'], 200, [], JSON_UNESCAPED_UNICODE);
         }
-        
+
         return response()->json(['error' => 'Profil fotoğrafı bulunamadı'], 404, [], JSON_UNESCAPED_UNICODE);
     }
 
-
-
-    public function userEvents($userId)
+    /**
+     * Get joined events of user
+     * @param $userId
+     * @return JsonResponse
+     */
+    public function userEvents($userId): JsonResponse
     {
         $events = User::find($userId)->events()->paginate(6);
         return response()->json($events, 200);
     }
 
-    public function myClubs()
+    /**
+     * Get Authenticated user joined clubs
+     * @return JsonResponse
+     */
+    public function myClubs(): JsonResponse
     {
         $user = User::find(auth()->user()->id);
         $clubs = $user->clubs()->paginate(6);
@@ -287,7 +381,11 @@ class UserController extends Controller
         return response()->json($clubs, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function myEvents()
+    /**
+     * Get Authenticated user joined events
+     * @return JsonResponse
+     */
+    public function myEvents(): JsonResponse
     {
         $user = User::find(auth()->user()->id);
         $events = $user->events()->paginate(6);
@@ -295,7 +393,11 @@ class UserController extends Controller
         return response()->json($events, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function myPhoto()
+    /**
+     * Get Authenticated user profile photo
+     * @return JsonResponse
+     */
+    public function myPhoto(): JsonResponse
     {
         $user = User::find(auth()->user()->id);
         $photo = $user->profile_photo_path;
@@ -311,13 +413,22 @@ class UserController extends Controller
         return response($file, 200)->header('Content-Type', $type);
     }
 
-    public function whoAmI()
+    /**
+     * Get Authenticated user profile
+     * @return JsonResponse
+     */
+    public function whoAmI(): JsonResponse
     {
         $user = auth()->user();
         return response()->json(['user' => $user], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function userPhoto($id)
+    /**
+     * Get user profile photo by id
+     * @param int $id
+     * @return Response
+     */
+    public function userPhoto(int $id): Response
     {
         $user = User::find($id);
 

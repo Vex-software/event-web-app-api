@@ -5,20 +5,21 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Models\User;
 
-class CheckAdminRole
+class CheckRole
 {
     /**
      * Handle an incoming request.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, $role): Response
     {
-        if (User::findOrFail(auth()->user()->id)->role != 'admin') {
-            return response()->json(['error' => 'Yetkiniz yok'], 403);
+        $userRole = auth()->user()->role->slug;
+        if($userRole != $role){
+            return response()->json(['error' => 'Yetkiniz Yok'], 403);
         }
+        
         return $next($request);
     }
 }

@@ -10,7 +10,8 @@ use App\Http\Controllers\MemberController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ClubManagerController;
 use App\Http\Controllers\GoogleController;
-
+use App\Models\Role;
+use Illuminate\Routing\RouteRegistrar;
 
 Route::get('/', function () {
     return response()->json(['message' => 'Buyrun burası API!']);
@@ -21,7 +22,6 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');
-
 
     //mail atilma durumu kontrol edilmedi
     Route::post('/lost-password', [AuthController::class, 'lostPassword'])->middleware('auth:api');
@@ -40,8 +40,11 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/my-photo', [UserController::class, 'myPhoto']); // oturum açan kullanıcının profil fotoğrafı
 
     Route::prefix('users')->group(function () {
+
         Route::get('/', [UserController::class, 'index']); // Kullanıcılar
         Route::get('/{id}', [UserController::class, 'show']); // Kullanıcı bilgileri
+
+        
         Route::get('/{id}/clubs', [UserController::class, 'userClubs']); // Kullanıcının üye olduğu kulüpler
         Route::get('/{id}/events', [UserController::class, 'userEvents']); // Kullanıcının dahil olduğu etkinlikler
         Route::get('/{id}/photo', [UserController::class, 'userPhoto']); // Kullanıcının profil fotoğrafı
@@ -56,6 +59,8 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/update-password', [UserController::class, 'updatePassword']); // oturum açan kullanıcının şifresini güncelle
 
         Route::post('delete-photo', [UserController::class, 'deletePhoto']); // oturum açan kullanıcının profil fotoğrafını sil
+
+
     });
 
 
@@ -74,7 +79,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/{id}/club', [EventController::class, 'eventClub']); // Etkinliğin ait olduğu kulüp
     });
 
-    Route::prefix('admin')->middleware('check.admin')->group(function () {
+    Route::prefix('admin')->middleware('checkrole:admin')->group(function () {
         Route::post('/update-user-role/{id}', [AdminController::class, 'updateRole']); // Kullanıcının yetkisini değiştir
         Route::post('/delete-user/{id}', [AdminController::class, 'deleteUser']); // Kullanıcıyı sil
         Route::post('/restore-user/{id}', [AdminController::class, 'restoreUser']); // Kullanıcıyı geri yükle
@@ -101,7 +106,7 @@ Route::middleware('auth:api')->group(function () {
 
     // Middleware'larda kullanıcının bir kulüp yöneticisi olup olmadığını ve yöneticisi olduğu kulübün varlığını kontrol ediyoruz.
 
-    Route::prefix('club-manager')->middleware('check.club-manager', 'check.club-manager-club')->group(function () {
+    Route::prefix('club-manager')->middleware('checkrole:club_manager', 'check.club.ownership')->group(function () {
 
         Route::post('/create-event', [ClubManagerController::class, 'createEvent']); // Etkinlik oluştur
         Route::post('/update-event/{id}', [ClubManagerController::class, 'updateEvent']); // Etkinlik bilgilerini güncelle

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Role;
+use App\Models\User;
+
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
  */
@@ -26,7 +28,7 @@ class UserFactory extends Factory
             'email' => $this->faker->unique()->safeEmail(),
 
             // 'role_id' => $this->faker->numberBetween(1,3),
-            'role_id' => Role::inRandomOrder()->first()->id,
+            // 'role_id' => Role::inRandomOrder()->first()->id,
 
             'profile_photo_path' => $this->faker->imageUrl(640, 480, 'people', true),
             'address' => $this->faker->address(),
@@ -36,6 +38,19 @@ class UserFactory extends Factory
             // 'remember_token' => Str::random(20),
         ];
     }
+
+    // /**
+    //  * Configure the model factory.
+    //  *
+    //  * @return $this
+    //  */
+    // public function configure()
+    // {
+    //     return $this->afterCreating(function (User $user) {
+    //         $roles = Role::inRandomOrder()->take(rand(1,3))->get();
+    //         $user->roles()->sync($roles->pluck('id'));
+    //     });
+    // }
 
     /**
      * Indicate that the model's email address should be unverified.

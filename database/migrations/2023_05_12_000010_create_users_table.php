@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('phone_number');
             $table->string('email')->unique();
 
+            
 
             $table->string('profile_photo_path')->nullable();
             $table->string('address')->nullable();
@@ -27,7 +28,7 @@ return new class extends Migration
 
             $table->string('password');
             
-            $table->string('role_id')->default(1);
+            $table->unsignedBigInteger('role_id')->default(1);
             
 
             $table->string('google_id')->nullable();
@@ -37,9 +38,10 @@ return new class extends Migration
             $table->string('linkedin_id')->nullable();
             $table->string('instagram_id')->nullable();
 
+
             $table->foreignId('social_media_id')->nullable()->constrained('social_media_links')->onDelete('set null');
 
-
+            $table->foreign('role_id')->references('id')->on('roles')->onDelete('cascade');
             // $table->rememberToken();
             $table->foreign('city_id')->references('id')->on('cities')->onDelete('cascade');
             $table->timestamps();

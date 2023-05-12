@@ -35,20 +35,38 @@ class User extends Authenticatable
         return $this->hasOne(Club::class, 'manager_id');
     }
 
-    public function roles()
+    public function role()
     {
-        return $this->belongsToMany(Role::class, 'user_roles');
+        return $this->belongsTo(Role::class);
     }
 
-    public function sehir()
+    // public function roles($slug = null)
+    // {
+    //     if ($slug) {
+    //         return $this->belongsToMany(Role::class, 'user_roles')->where('slug', $slug);
+    //     }
+    //     return $this->belongsToMany(Role::class, 'user_roles');
+    // }
+
+    // public function role()
+    // {
+    //     return $this->belongsTo(Role::class);
+    // }
+
+
+
+
+    public function city()
     {
-        return $this->belongsTo(Sehir::class);
+        return $this->belongsTo(City::class);
     }
+
 
     public function socialMediaLinks()
     {
         return $this->hasMany(SocialMediaLink::class);
     }
+
 
 
 

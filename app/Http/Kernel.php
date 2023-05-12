@@ -65,8 +65,7 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'check.admin' => \App\Http\Middleware\CheckAdminRole::class,
-        'check.club-manager' => \App\Http\Middleware\CheckClubManagerRole::class,
-        'check.club-manager-club' => \App\Http\Middleware\CheckClubManagerClub::class,
+        'checkrole' => \App\Http\Middleware\CheckRole::class,
+        'check.club.ownership' => \App\Http\Middleware\CheckClubOwnership::class,
     ];
 }

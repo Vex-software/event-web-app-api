@@ -4,10 +4,9 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use App\Models\User;
 use Symfony\Component\HttpFoundation\Response;
 
-class CheckClubManagerRole
+class CheckClubOwnership
 {
     /**
      * Handle an incoming request.
@@ -16,9 +15,8 @@ class CheckClubManagerRole
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $userRole = User::findOrFail(auth()->user()->id)->role;
-        if ($userRole != 'club_manager') {
-            return response()->json(['error' => 'Bir Kulüp Yöneticisi Değilsiniz'], 403);
+        if (auth()->user()->managerOfClub == null) {
+            return response()->json(['error' => 'Yöneticisi olduğunuz kulüp bulunamadı. Site yöneticisi ile iletişime geçin'], 403);
         }
         return $next($request);
     }
