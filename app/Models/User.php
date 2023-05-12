@@ -35,6 +35,22 @@ class User extends Authenticatable
         return $this->hasOne(Club::class, 'manager_id');
     }
 
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'user_roles');
+    }
+
+    public function sehir()
+    {
+        return $this->belongsTo(Sehir::class);
+    }
+
+    public function socialMediaLinks()
+    {
+        return $this->hasMany(SocialMediaLink::class);
+    }
+
+
 
     /**
      * The attributes that are mass assignable.

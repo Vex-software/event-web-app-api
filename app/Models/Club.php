@@ -19,9 +19,16 @@ class Club extends Model
         return $this->hasMany(Event::class);
     }
 
+    public function manager()
+    {
+        return $this->belongsTo(User::class, 'manager_id');
+    }
+
+
+    public function socialMediaLinks()
+    {
+        return $this->hasMany(SocialMediaLink::class);
+    }
+
     
-
-
-   
-
 }

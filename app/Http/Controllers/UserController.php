@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Contracts\Validation\Rule;
+use Illuminate\Http\JsonResponse;
 
 class UserController extends Controller
 {
@@ -23,7 +24,7 @@ class UserController extends Controller
         return $users;
     }
 
-    public function show($id)
+    public function show(int $id) : JsonResponse
     {
         $user = User::findOrFail($id);
         $userClubs = $user->clubs()->paginate(6);
@@ -68,7 +69,7 @@ class UserController extends Controller
         }
     }
 
-    public function leaveClub(string $clubId)
+    public function leaveClub(int $clubId)
     {
         // Kullanıcıyı doğrula
         $user = auth()->user();

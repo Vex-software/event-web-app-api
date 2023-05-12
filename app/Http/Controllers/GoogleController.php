@@ -9,27 +9,18 @@ use Illuminate\Support\Facades\Auth;
 
 class GoogleController extends Controller
 {
-    /**
-     * Redirect the user to the Google authentication page.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function redirectToGoogle()
+    public function redirectToGoogle() : \Symfony\Component\HttpFoundation\RedirectResponse
     {
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')->redirect();  // google'a yönlendir
     }
 
-    /**
-     * Obtain the user information from Google.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function handleGoogleCallback()
+
+    public function handleGoogleCallback() : \Illuminate\Http\RedirectResponse
     {
         try {
             $user = Socialite::driver('google')->user();
         } catch (\Exception $e) {
-            dd($e);
+            return redirect()->to('/login');
         }
 
         dd($user);
@@ -40,13 +31,9 @@ class GoogleController extends Controller
         return redirect()->to('/home');
     }
 
-    /**
-     * Return user if exists; create and return if doesn't
-     *
-     * @param $googleUser
-     * @return User
-     */
-    private function findOrCreateUser($googleUser)
+
+    // bu metodu kullanmak icin once veritabaninda google_id alani gerekli
+    private function findOrCreateUser($googleUser) : User
     {
         $authUser = User::where('google_id', $googleUser->id)->first();
 
@@ -58,7 +45,7 @@ class GoogleController extends Controller
             'name' => $googleUser->name,
             'email' => $googleUser->email,
             'google_id' => $googleUser->id,
-            'password' => bcrypt('123456'), // set a random password
+            'password' => bcrypt('123456'),  // simdilik sabit bir şifre atadım
         ]);
     }
 }

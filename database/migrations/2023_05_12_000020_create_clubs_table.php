@@ -20,10 +20,10 @@ return new class extends Migration
             $table->string('email');
             $table->string('phone_number');
             $table->string('website');
-            $table->string('founded_year');
-            $table->string('social_media_links', 1000);
+            $table->dateTime('founded_year');
             
             $table->foreignId('manager_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('social_media_id')->nullable()->constrained('social_media_links')->onDelete('set null');
             $table->timestamps();
         });
     }

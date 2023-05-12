@@ -39,7 +39,6 @@
             <p class="user-name">Kullanici Adi : {{ $user->name }}</p>
             <p class="user-field">Kullanici Aciklamasi : {{ $user->field }}</p>
             <p class="user-clubs">Dahil Oldugu Kulupler :
-            <p class="club-users">Kulup Uyeleri :
                 @foreach ($user->clubs as $club)
                     {{ $club->name }}
                 @endforeach

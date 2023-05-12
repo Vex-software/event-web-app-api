@@ -12,9 +12,6 @@ use App\Http\Controllers\ClubManagerController;
 use App\Http\Controllers\GoogleController;
 
 
-
-
-
 Route::get('/', function () {
     return response()->json(['message' => 'Buyrun burası API!']);
 });
@@ -24,9 +21,11 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');
+
+
+    //mail atilma durumu kontrol edilmedi
     Route::post('/lost-password', [AuthController::class, 'lostPassword'])->middleware('auth:api');
 
-    //denenmedi
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/email/verify', [AuthController::class, 'verifyEmail'])->name('verification.verify');
 
@@ -39,7 +38,6 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/my-clubs', [UserController::class, 'myClubs']); // oturum açan kullanıcının üye olduğu kulüpler
     Route::get('/my-events', [UserController::class, 'myEvents']); // oturum açan kullanıcının dahil olduğu etkinlikler
     Route::get('/my-photo', [UserController::class, 'myPhoto']); // oturum açan kullanıcının profil fotoğrafı
-
 
     Route::prefix('users')->group(function () {
         Route::get('/', [UserController::class, 'index']); // Kullanıcılar
@@ -83,8 +81,6 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/deleted-users', [AdminController::class, 'deletedUsers']); // Silinmiş kullanıcılar
 
 
-
-
         //yapilacaklar
 
         Route::post('/create-event', [AdminController::class, 'createEvent']); // Etkinlik oluştur
@@ -112,6 +108,5 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/delete-event/{id}', [ClubManagerController::class, 'deleteEvent']); // Etkinliği sil
 
         Route::get('/update-club/{id}', [ClubManagerController::class, 'updateClub']); // Kulüp bilgilerini güncelle
-
     });
 });

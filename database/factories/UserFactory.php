@@ -5,7 +5,7 @@ namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
-
+use App\Models\Role;
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
  */
@@ -24,10 +24,13 @@ class UserFactory extends Factory
             'phone_number' => $this->faker->unique()->numerify('+90-5##-###-##-##'),
             // 'phone_number' => $this->faker->unique()->regexify('\+90-[1-9]{3}-[1-9]{3}-[0-9]{2}-[0-9]{2}'),
             'email' => $this->faker->unique()->safeEmail(),
-            'role' => $this->faker->randomElement(['admin', 'user', 'club_manager']),
+
+            // 'role_id' => $this->faker->numberBetween(1,3),
+            'role_id' => Role::inRandomOrder()->first()->id,
+
             'profile_photo_path' => $this->faker->imageUrl(640, 480, 'people', true),
             'address' => $this->faker->address(),
-            'city' => $this->faker->city(),
+            'city_id' => $this->faker->numberBetween(1,81),
             'email_verified_at' => now(),
             'password' => Hash::make('password'),
             // 'remember_token' => Str::random(20),
