@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('surname');
-            $table->string('phone_number');
+            $table->string('phone_number')->nullable();
             $table->string('email')->unique();
 
             
@@ -32,11 +32,7 @@ return new class extends Migration
             
 
             $table->string('google_id')->nullable();
-            $table->string('facebook_id')->nullable();
-            $table->string('twitter_id')->nullable();
             $table->string('github_id')->nullable();
-            $table->string('linkedin_id')->nullable();
-            $table->string('instagram_id')->nullable();
 
 
             $table->foreignId('social_media_id')->nullable()->constrained('social_media_links')->onDelete('set null');

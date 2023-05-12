@@ -40,7 +40,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|max:55',
             'surname' => 'required|max:65',
-            'phone_number' => ['required', 'regex:/^\+?\d{12}$/'],
+            'phone_number' => ['regex:/^\+?\d{12}$/'],
             'email' => 'email|required|unique:users',
             'address' => 'nullable',
             'city' => 'nullable',

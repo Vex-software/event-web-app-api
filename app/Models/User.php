@@ -82,6 +82,13 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'profile_photo_path',
+        'address',
+        'city_id',
+        'email_verified_at',
+        'remember_token',
+        'google_id',
+        'github_id',
     ];
 
     /**

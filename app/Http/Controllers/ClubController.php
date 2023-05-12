@@ -26,7 +26,7 @@ class ClubController extends Controller
      * @param int $id
      * @return Response
      */
-    public function show($id): JsonResponse
+    public function show(int $id): JsonResponse
     {
         $club = Club::findOrFail($id);
         $clubUsers = $club->users()->paginate(6); // 10 katılımcı için pagination yapılıyor
@@ -41,7 +41,7 @@ class ClubController extends Controller
      * @param int $clubId
      * @return Response
      */
-    public function clubUsers($clubId): JsonResponse
+    public function clubUsers(int $clubId): JsonResponse
     {
         $users = Club::find($clubId)->users()->paginate(6);
         return response()->json($users, 200);
@@ -52,7 +52,7 @@ class ClubController extends Controller
      * @param int $clubId
      * @return Response
      */
-    public function clubEvents($clubId): JsonResponse
+    public function clubEvents(int $clubId): JsonResponse
     {
         // $club = Club::find(1);
 

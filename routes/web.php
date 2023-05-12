@@ -5,19 +5,31 @@ use App\Http\Controllers\DBController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\GoogleController;
 use Laravel\Socialite\Two\GoogleProvider;
+use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\GithubController;
 
 Route::get('/', function () {
-    return "Welcome to the home page!";
-    // return response('', 204); // 204 No Content
+    return "Hi";
+    return response('', 204); // 204 No Content
 })->name('welcome');
 
 
 Route::get('/login', function () {
-    return view('login.google');
+    return view('login.index');
 })->name('login');
+
+
+Route::get('/react', function (Illuminate\Http\Request $request) {
+    $cookies = $request->cookies->all();
+    return response()->json($cookies);
+})->name('deneme');
+
 
 Route::get('auth/google', [GoogleController::class, 'redirectToGoogle']);
 Route::get('auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
+
+Route::get('auth/github', [GithubController::class, 'redirectToGithub']);
+Route::get('auth/github/callback', [GithubController::class, 'handleGithubCallback']);
 
 
 
