@@ -2,11 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DBController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\GoogleController;
-use Laravel\Socialite\Two\GoogleProvider;
-use Illuminate\Support\Facades\Storage;
-use App\Http\Controllers\GithubController;
+use App\Http\Controllers\Guest\GithubController;
+use App\Http\Controllers\Guest\GoogleController;
 
 Route::get('/', function () {
     return "Hi";

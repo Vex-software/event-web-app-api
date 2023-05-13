@@ -34,7 +34,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/my-photo', [User\UserController::class, 'myPhoto']); // oturum açan kullanıcının profil fotoğrafı
 
     Route::prefix('user')->group(function () {
-
+        
         Route::get('/all', [User\UserController::class, 'index']); // Kullanıcılar
         Route::get('/{id}', [User\UserController::class, 'show']); // Kullanıcı bilgileri
 

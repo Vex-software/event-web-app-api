@@ -24,6 +24,8 @@ class Event extends Model
         'location',
         'image',
         'quota',
+        'created_at',
+        'updated_at',
     ];
 
     protected $casts =
