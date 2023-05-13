@@ -10,6 +10,32 @@ class Club extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $dates = ['deleted_at'];
+
+    protected $fillable = [
+        'name',
+        'title',
+        'description',
+        'logo',
+        'email',
+        'phone_number',
+        'website',
+        'founded_year',
+        'manager_id',
+    ];
+
+    protected $casts = [
+        'founded_year' => 'integer',
+    ];
+
+    protected $hidden = [
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'email',
+        'phone_number',
+    ];
+
     public function users()
     {
         return $this->belongsToMany(User::class);
@@ -31,77 +57,10 @@ class Club extends Model
         return $this->hasMany(SocialMediaLink::class);
     }
 
-    protected $fillable = [
-        'name',
-        'title',
-        'description',
-        'logo',
-        'email',
-        'phone_number',
-        'website',
-        'founded_year',
-        'manager_id',
-    ];
-
-    protected $hidden = [
-        'created_at',
-        'updated_at',
-        'deleted_at',
-    ];
-
-    protected static $hiddenClubFields = ['phone_number', 'email', 'created_at', 'updated_at', 'deleted_at'];
-    protected static $hiddenUserFields = ['email', 'phone_number', 'address', 'city_id', 'email_verified_at', 'google_id', 'github_id', 'created_at', 'updated_at', 'deleted_at'];
-    protected static $hiddenEventFields = ['created_at', 'updated_at', 'deleted_at'];
-
-    public static function getAllClubDataForUser(int $paginate)
-    {
-        return Club::paginate($paginate)->makeHidden(self::$hiddenClubFields);
-    }
-
-    // Bazi bilgileri user icin gizli tutuyoruz
-    public static function getClubData($club, $clubUsers = false, $clubManager = false, $clubEvents = false, int $paginate = 6)
-    {
-        $clubData = $club->makeHidden(self::$hiddenClubFields);
-
-        if ($clubUsers) {
-            $clubData->users = $club->users()->paginate($paginate)->makeHidden(self::$hiddenUserFields);
-        }
-
-        if ($clubManager) {
-            $clubData->manager = $club->manager->makeHidden(self::$hiddenUserFields);
-        }
-
-        if ($clubEvents) {
-            $clubData->events = $club->events()->paginate($paginate);
-        }
-
-        return $clubData;
-    }
-
-
-    public static function managerForUser(int $id)
-    {
-        return CLub::findOrFail($id)->manager->makeHidden(self::$hiddenUserFields);
-    }
-
-
-
     public function getClubEventsDataForUser(int $id, int $paginate)
     {
         return $this->findOrFail($id)->events()->paginate($paginate);
     }
-
-
-
-
-
-
-
-
-
-    protected $casts = [
-        'founded_year' => 'integer',
-    ];
 
     public function getLogoAttribute($value)
     {

@@ -12,65 +12,8 @@ use Laravel\Passport\HasApiTokens;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
-    protected $hiddenClubFields = ['phone_number', 'email', 'created_at', 'updated_at', 'deleted_at'];
-    protected $hiddenUserFields = ['email', 'phone_number', 'address', 'city_id', 'email_verified_at', 'google_id', 'github_id', 'created_at', 'updated_at', 'deleted_at'];
 
     protected $dates = ['deleted_at'];
-
-    public function clubs()
-    {
-        return $this->belongsToMany(Club::class);
-    }
-
-    public function events()
-    {
-        return $this->belongsToMany(Event::class);
-    }
-
-    public function tokens()
-    {
-        return $this->hasMany(\Laravel\Passport\Token::class);
-    }
-
-    public function managerOfClub()
-    {
-        return $this->hasOne(Club::class, 'manager_id');
-    }
-
-    public function role()
-    {
-        return $this->belongsTo(Role::class);
-    }
-
-    // public function roles($slug = null)
-    // {
-    //     if ($slug) {
-    //         return $this->belongsToMany(Role::class, 'user_roles')->where('slug', $slug);
-    //     }
-    //     return $this->belongsToMany(Role::class, 'user_roles');
-    // }
-
-    // public function role()
-    // {
-    //     return $this->belongsTo(Role::class);
-    // }
-
-
-
-
-    public function city()
-    {
-        return $this->belongsTo(City::class);
-    }
-
-
-    public function socialMediaLinks()
-    {
-        return $this->hasMany(SocialMediaLink::class);
-    }
-
-
-
 
     /**
      * The attributes that are mass assignable.
@@ -101,8 +44,49 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'email',
+        'phone_number',
+        'address',
+        'city_id',
+        'email_verified_at',
+        'google_id',
+        'github_id',
+        'pivot',
+        'role_id',
     ];
+
+    public static function getAllProperties()
+    {
+        if(auth()->user()->role_id === Role::where('slug', 'admin')->first()->id){
+            return self::$hidden;
+        }else{
+            return "You are not authorized to see this information.";
+        }
+    }
+
+    public function isUser()
+    {
+        return $this->role_id === Role::where('slug', 'user')->first()->id;
+    }
+
+
+    // public static function getAllProperties()
+    // {
+    //     return (new static)->hidden;
+    // }
+
+
+
+
+
+
+    public function isClubManager()
+    {
+        return $this->role_id === Role::where('slug', 'club_manager')->first()->id;
+    }
 
     /**
      * The attributes that should be cast.
@@ -113,20 +97,38 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
-    public static function getAllDataForUser(int $paginate)
+    public function clubs()
     {
-        return User::paginate($paginate)->makeHidden(self::$hiddenUserFields);
+        return $this->belongsToMany(Club::class);
     }
 
-    public function getUserDataForUser(int $id)
+    public function events()
     {
-        return User::find($id)->makeHidden(self::$hiddenUserFields);
+        return $this->belongsToMany(Event::class);
     }
 
-    public function getClubDataForUser(int $id)
+    public function tokens()
     {
-        return User::find($id)->clubs()->get()->makeHidden(self::$hiddenClubFields);
+        return $this->hasMany(\Laravel\Passport\Token::class);
     }
 
-    
+    public function managerOfClub()
+    {
+        return $this->hasOne(Club::class, 'manager_id');
+    }
+
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(City::class);
+    }
+
+    public function socialMediaLinks()
+    {
+        return $this->hasMany(SocialMediaLink::class);
+    }
 }

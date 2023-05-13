@@ -13,9 +13,10 @@ class EventController extends Controller
 {
     /**
      * Display a listing of the resource.
+     * Not : Event tablosunda hiçbir alan kullanıcıya gizli olmadığı için burada model metodu kullanılmadı.
      * @return Event[]|Collection|Response
      */
-    public function index(): Collection
+    public function index()
     {
         $events = Event::paginate(6);
         return $events;
@@ -23,11 +24,12 @@ class EventController extends Controller
 
     /**
      * Display the specified resource.
+     * Not : Event tablosunda hiçbir alan kullanıcıya gizli olmadığı için burada model metodu kullanılmadı.
      * @param int $id
      * @return Response
      */
     public function show($id)
-    {
+    { 
         $event = Event::findOrFail($id);
         $eventUsers = $event->users()->paginate(6);
         $eventClub = $event->club()->get();
@@ -37,6 +39,7 @@ class EventController extends Controller
             'eventClub' => $eventClub
         ], 200);
     }
+
 
     /**
      * Get club of the event.
@@ -48,4 +51,11 @@ class EventController extends Controller
         $club = Event::find($eventId)->club()->get();
         return response()->json($club, 200);
     }
+
+    public function eventUsers($eventId)
+    {
+        $users = Event::find($eventId)->users()->paginate(6);
+        return response()->json($users, 200);
+    }
+
 }

@@ -16,7 +16,7 @@ class ClubController extends Controller
      */
     public function index()
     {
-        $clubs = Club::getAllClubDataForUser(6);
+        $clubs = Club::paginate(6);
         return response()->json($clubs, 200);
     }
 
@@ -28,8 +28,15 @@ class ClubController extends Controller
     public function show(int $id): JsonResponse
     {
         $club = Club::findOrFail($id);
-        $data = Club::getClubData($club, $clubUsers = true, $clubManager = true, $clubEvents = true, $paginate = 6);
-        return response()->json($data, 200);
+        $clubUsers = $club->users()->paginate(6);
+        $clubManager = $club->manager()->get();
+        $clubEvents = $club->events()->paginate(6);
+        return response()->json([
+            'club' => $club,
+            'clubUsers' => $clubUsers,
+            'clubManager' => $clubManager,
+            'clubEvents' => $clubEvents
+        ], 200);
     }
 
     /**
@@ -40,8 +47,8 @@ class ClubController extends Controller
     public function clubUsers(int $clubId): JsonResponse
     {
         $club = Club::findOrFail($clubId);
-        $users = Club::getClubData($club, $clubUsers = true, $clubManager = false, $clubEvents = false, $paginate = 6);//->users;
-        return response()->json($users, 200);
+        $clubUsers = $club->users()->paginate(6);
+        return response()->json($clubUsers, 200);
     }
 
     /**
@@ -52,7 +59,7 @@ class ClubController extends Controller
     public function clubEvents(int $clubId): JsonResponse
     {
         $club = Club::findOrFail($clubId);
-        $events = Club::getClubData($club, $clubUsers = false, $clubManager = false, $clubEvents = true, $paginate = 6);// ->events;
-        return response()->json($events, 200);
+        $clubEvents = $club->events()->paginate(6);
+        return response()->json($clubEvents, 200);
     }
 }

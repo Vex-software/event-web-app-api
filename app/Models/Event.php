@@ -10,7 +10,8 @@ class Event extends Model
 {
     use HasFactory, SoftDeletes;
 
-
+    protected $dates = ['deleted_at'];
+    
     protected $fillable =
     [
         'name',
@@ -24,6 +25,21 @@ class Event extends Model
         'image',
         'quota',
     ];
+
+    protected $casts =
+    [
+        'start_time' => 'datetime',
+        'end_time' => 'datetime',
+    ];
+
+    protected $hidden =
+    [
+        'created_at',
+        'updated_at',
+        'deleted_at',
+    ];
+
+    protected static $hiddenClubFields = ['phone_number', 'email', 'created_at', 'updated_at', 'deleted_at'];
 
 
     /* Bir etkinligin sadece bir tane yaraticisi/sahibi var. 
@@ -39,5 +55,4 @@ class Event extends Model
         return $this->belongsToMany(User::class);
     }
 
- 
 }
