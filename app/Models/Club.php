@@ -108,30 +108,30 @@ class Club extends Model
         return asset('storage/' . $value);
     }
 
-    public function setLogoAttribute($value)
-    {
-        $this->attributes['logo'] = $value->store('clubs');
-    }
+    // public function setLogoAttribute($value)
+    // {
+    //     $this->attributes['logo'] = $value->store('clubs');
+    // }
 
     public function getWebsiteAttribute($value)
     {
         return 'https://' . $value;
     }
 
-    public function setWebsiteAttribute($value)
-    {
-        $this->attributes['website'] = str_replace('https://', '', $value);
-    }
+    // public function setWebsiteAttribute($value)
+    // {
+    //     $this->attributes['website'] = str_replace('https://', '', $value);
+    // }
 
     public function getPhoneNumberAttribute($value)
     {
         return '+90' . $value;
     }
 
-    public function setPhoneNumberAttribute($value)
-    {
-        $this->attributes['phone_number'] = str_replace('+90', '', $value);
-    }
+    // public function setPhoneNumberAttribute($value)
+    // {
+    //     $this->attributes['phone_number'] = str_replace('+90', '', $value);
+    // }
 
     public function getCreatedAtAttribute($value)
     {
@@ -153,10 +153,10 @@ class Club extends Model
         return date('Y', strtotime($value));
     }
 
-    public function setFoundedYearAttribute($value)
-    {
-        $this->attributes['founded_year'] = date('Y-m-d H:i:s', strtotime($value));
-    }
+    // public function setFoundedYearAttribute($value)
+    // {
+    //     $this->attributes['founded_year'] = date('Y-m-d H:i:s', strtotime($value));
+    // }
 
     public function scopeSearch($query, $search)
     {
