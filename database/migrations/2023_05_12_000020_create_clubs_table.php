@@ -19,12 +19,13 @@ return new class extends Migration
             $table->string('logo');
             $table->string('email');
             $table->string('phone_number');
-            $table->string('website');
-            $table->dateTime('founded_year');
+            $table->string('website')->nullable();
+            $table->dateTime('founded_year')->nullable();
             
             $table->foreignId('manager_id')->nullable()->constrained('users')->onDelete('set null');
             $table->foreignId('social_media_id')->nullable()->constrained('social_media_links')->onDelete('set null');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

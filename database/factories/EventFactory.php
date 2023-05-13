@@ -27,6 +27,7 @@ class EventFactory extends Factory
             'end_time' => $this->faker->dateTimeBetween('+1 year', '+2 years'),
             'location' => $this->faker->address,
             'image' => $this->faker->imageUrl(640, 480, 'animals', true),
+            'quota' => $this->faker->numberBetween(0, 2000),
             'club_id' => Club::factory()->create()->id,
             'category_id' => EventCategory::factory()->create()->id
         ];

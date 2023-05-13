@@ -12,6 +12,8 @@ use Laravel\Passport\HasApiTokens;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    protected $hiddenClubFields = ['phone_number', 'email', 'created_at', 'updated_at', 'deleted_at'];
+    protected $hiddenUserFields = ['email', 'phone_number', 'address', 'city_id', 'email_verified_at', 'google_id', 'github_id', 'created_at', 'updated_at', 'deleted_at'];
 
     protected $dates = ['deleted_at'];
 
@@ -110,4 +112,21 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public static function getAllDataForUser(int $paginate)
+    {
+        return User::paginate($paginate)->makeHidden(self::$hiddenUserFields);
+    }
+
+    public function getUserDataForUser(int $id)
+    {
+        return User::find($id)->makeHidden(self::$hiddenUserFields);
+    }
+
+    public function getClubDataForUser(int $id)
+    {
+        return User::find($id)->clubs()->get()->makeHidden(self::$hiddenClubFields);
+    }
+
+    
 }

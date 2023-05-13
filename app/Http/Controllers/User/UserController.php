@@ -1,19 +1,18 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\User;
 
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Club;
 use App\Models\Event;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Response;
-use Laravel\Ui\Presets\React;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Illuminate\Contracts\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 use App\Models\Role;
 
@@ -24,50 +23,8 @@ class UserController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
-        if ($request->has('name')) {
-            $users = User::where('name', 'LIKE', '%' . $request->name . '%')->paginate(6);
-            return $users;
-        }
-
-        if ($request->has('city')) {
-            $validatedData = $request->validate([
-                'city' => 'exists:cities,city_name',
-            ]);
-            if ($validatedData) {
-                $users = User::whereHas('city', function ($q) use ($request) {
-                    $q->where('city_name', 'LIKE', '%' . $request->city . '%');
-                })->paginate(6);
-                return $users;
-            }
-        }
-
-        if ($request->has('role')) {
-            $validatedData = $request->validate([
-                'role' => 'exists:roles,slug',
-            ]);
-
-            if ($validatedData) {
-                $users = Role::where('slug', $request->role)->first()->users;
-                return $users;
-            }
-        }
-
-        if ($request->has('club')) {
-            $users = User::whereHas('clubs', function ($q) use ($request) {
-                $q->where('name', 'LIKE', '%' . $request->club . '%');
-            })->paginate(6);
-            return $users;
-        }
-
-        if ($request->has('event')) {
-            $users = User::whereHas('events', function ($q) use ($request) {
-                $q->where('name', 'LIKE', '%' . $request->event . '%');
-            })->paginate(6);
-            return $users;
-        }
-
         $users = User::paginate(6);
         return $users;
     }

@@ -18,7 +18,8 @@ return new class extends Migration
             $table->string('phone_number')->nullable();
             $table->string('email')->unique();
 
-            
+            $table->decimal('trust_score', 4, 1)->unsigned()->default(100.0)->nullable(false);
+
 
             $table->string('profile_photo_path')->nullable();
             $table->string('address')->nullable();
@@ -27,9 +28,9 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
 
             $table->string('password');
-            
+
             $table->unsignedBigInteger('role_id')->default(1);
-            
+
 
             $table->string('google_id')->nullable();
             $table->string('github_id')->nullable();

@@ -1,22 +1,19 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Guest;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-
 use App\Models\User;
-use App\Models\Club;
-use Laravel\Passport\Http\Controllers\AccessTokenController;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Http\JsonResponse;
 
-class AuthController extends Controller
+class LoginController extends Controller
 {
-
     /**
      * Login user and create token
      *
@@ -94,7 +91,6 @@ class AuthController extends Controller
 
         return response(['user' => $user, 'access_token' => $accessToken]);
     }
-
 
     /**
      * Login user and create token
@@ -206,6 +202,23 @@ class AuthController extends Controller
     }
 
     /**
+     * Resend email
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function resendEmail(Request $request): JsonResponse
+    {
+        if ($request->user()->hasVerifiedEmail()) {
+            return response()->json(['message' => 'Kullanıcı zaten onaylanmış.'], 400, [], JSON_UNESCAPED_UNICODE);
+        }
+
+        $request->user()->sendEmailVerificationNotification();
+
+        return response()->json(['message' => 'Doğrulama e-postası gönderildi.'], 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    
+    /**
      * Reset password
      * @param Request $request
      * @return JsonResponse
@@ -247,21 +260,5 @@ class AuthController extends Controller
         $user->markEmailAsVerified();
 
         return response()->json(['success' => 'E-posta adresiniz başarıyla doğrulandı'], 200, [], JSON_UNESCAPED_UNICODE);
-    }
-
-    /**
-     * Resend email
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function resendEmail(Request $request): JsonResponse
-    {
-        if ($request->user()->hasVerifiedEmail()) {
-            return response()->json(['message' => 'Kullanıcı zaten onaylanmış.'], 400, [], JSON_UNESCAPED_UNICODE);
-        }
-
-        $request->user()->sendEmailVerificationNotification();
-
-        return response()->json(['message' => 'Doğrulama e-postası gönderildi.'], 200, [], JSON_UNESCAPED_UNICODE);
     }
 }

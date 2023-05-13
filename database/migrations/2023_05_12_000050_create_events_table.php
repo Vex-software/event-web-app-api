@@ -17,17 +17,19 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
             $table->dateTime('start_time');
-            $table->dateTime('end_time');
+            $table->dateTime('end_time')->nullable();
             $table->string('location')->nullable();
             $table->string('image')->nullable();
+
+            $table->string('quota')->nullable();
 
             $table->unsignedBigInteger('club_id');
             $table->unsignedBigInteger('category_id');
             $table->timestamps();
+            $table->softDeletes();
 
             $table->foreign('category_id')->references('id')->on('event_categories');
             $table->foreign('club_id')->references('id')->on('clubs')->onDelete('cascade');
-
         });
     }
 
