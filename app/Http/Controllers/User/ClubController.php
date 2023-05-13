@@ -10,9 +10,6 @@ use Illuminate\Http\JsonResponse;
 
 class ClubController extends Controller
 {
-    protected $hiddenClubFields = ['phone_number', 'email', 'created_at', 'updated_at', 'deleted_at'];
-    protected $hiddenUserFields = ['email', 'phone_number', 'address', 'city_id', 'email_verified_at', 'google_id', 'github_id', 'created_at', 'updated_at', 'deleted_at'];
-
     /**
      * Display a listing of the resource.
      * @return Club[]|Collection|Response
@@ -43,7 +40,7 @@ class ClubController extends Controller
     public function clubUsers(int $clubId): JsonResponse
     {
         $club = Club::findOrFail($clubId);
-        $users = Club::getClubData($club, $clubUsers = true, $clubManager = false, $clubEvents = false, $paginate = 6)->users;
+        $users = Club::getClubData($club, $clubUsers = true, $clubManager = false, $clubEvents = false, $paginate = 6);//->users;
         return response()->json($users, 200);
     }
 
@@ -55,7 +52,7 @@ class ClubController extends Controller
     public function clubEvents(int $clubId): JsonResponse
     {
         $club = Club::findOrFail($clubId);
-        $events = Club::getClubData($club, $clubUsers = false, $clubManager = false, $clubEvents = true, $paginate = 6)->events;
+        $events = Club::getClubData($club, $clubUsers = false, $clubManager = false, $clubEvents = true, $paginate = 6);// ->events;
         return response()->json($events, 200);
     }
 }
