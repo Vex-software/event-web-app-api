@@ -16,7 +16,6 @@ class Club extends Model
         'name',
         'title',
         'description',
-        'logo',
         'email',
         'phone_number',
         'website',
@@ -34,7 +33,10 @@ class Club extends Model
         'deleted_at',
         'email',
         'phone_number',
+        'pivot',
     ];
+
+
 
     public function users()
     {
@@ -52,9 +54,9 @@ class Club extends Model
     }
 
 
-    public function socialMediaLinks()
+    public function socialMediaLink()
     {
-        return $this->hasMany(SocialMediaLink::class);
+        return $this->hasOne(SocialMediaLink::class);
     }
 
     public function getClubEventsDataForUser(int $id, int $paginate)
@@ -64,18 +66,20 @@ class Club extends Model
 
     public function getLogoAttribute($value)
     {
-        return asset('storage/' . $value);
+        // if (filter_var($value, FILTER_VALIDATE_URL))
+        //     return route('getClubPhoto', ['id' => $this->id]);
+        // else {
+        //     return asset('storage/' . $value);
+        // }
+        return route('getClubPhoto', ['id' => $this->id]);
     }
 
-    // public function setLogoAttribute($value)
+   
+
+    // public function getWebsiteAttribute($value)
     // {
-    //     $this->attributes['logo'] = $value->store('clubs');
+    //     return 'https://' . $value;
     // }
-
-    public function getWebsiteAttribute($value)
-    {
-        return 'https://' . $value;
-    }
 
     // public function setWebsiteAttribute($value)
     // {

@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DBController;
 use App\Http\Controllers\Guest\GithubController;
 use App\Http\Controllers\Guest\GoogleController;
+use App\Models\Role;
+use Illuminate\Support\Facades\Redis;
 
 Route::get('/', function () {
     return "Hi";
@@ -35,3 +37,4 @@ Route::get('users', [DBController::class, 'users'])->name('users.index');
 
 
 Route::get('clubs/{clubId}/katil/{userId}', [DBController::class, 'joinClub'])->name('clubs.katil');
+

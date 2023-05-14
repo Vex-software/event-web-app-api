@@ -38,7 +38,7 @@ class User extends Authenticatable
 
     /**
      * The attributes that should be hidden for serialization.
-     *
+     * Not : Bu gizli alanlar her kullanıcıya aittir. 
      * @var array<int, string>
      */
     protected $hidden = [
@@ -58,13 +58,40 @@ class User extends Authenticatable
         'role_id',
     ];
 
-    public static function getAllProperties()
+    // Bu Gizli Alanlar sadece Authenticated User'a aittir.
+    protected $hiddenForAuthUser = [
+        'password',
+        'remember_token',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'email_verified_at',
+        'google_id',
+        'github_id',
+    ];
+
+    public function getAllAttributes()
     {
-        if(auth()->user()->role_id === Role::where('slug', 'admin')->first()->id){
-            return self::$hidden;
-        }else{
-            return "You are not authorized to see this information.";
+        $allAttributes  = $this->makeVisible($this->getFillable())->toArray();
+        $hiddenForAuthUser = $this->hiddenForAuthUser ?? [];
+
+        if (isset($allAttributes['city_id'])) {
+            $city = $this->city;
+            unset($allAttributes['city_id']);
+            $allAttributes['city'] = $city;
         }
+
+        if (isset($allAttributes['social_media_id'])) {
+            $social_media = $this->socialMediaLink;
+            unset($allAttributes['social_media_id']);
+            $allAttributes['social_media'] = $social_media;
+        }
+
+        foreach ($hiddenForAuthUser as $attribute) {
+            unset($allAttributes[$attribute]);
+        }
+
+        return $allAttributes;
     }
 
     public function isUser()
@@ -72,21 +99,20 @@ class User extends Authenticatable
         return $this->role_id === Role::where('slug', 'user')->first()->id;
     }
 
-
-    // public static function getAllProperties()
+    // public function toArray()
     // {
-    //     return (new static)->hidden;
+    //     $array = parent::toArray();
+    //     $array['role'] = $this->role->slug;
+    //     return $array;
     // }
-
-
-
-
 
 
     public function isClubManager()
     {
         return $this->role_id === Role::where('slug', 'club_manager')->first()->id;
     }
+
+
 
     /**
      * The attributes that should be cast.
@@ -127,8 +153,26 @@ class User extends Authenticatable
         return $this->belongsTo(City::class);
     }
 
-    public function socialMediaLinks()
+    public function socialMediaLink()
     {
-        return $this->hasMany(SocialMediaLink::class);
+        return $this->hasOne(SocialMediaLink::class, 'id', 'social_media_id');
+    }
+    // protected $appends = [
+    //     'profile_photo_url',
+    // ];
+
+    public function getProfilePhotoPathAttribute($value)
+    {
+        if (env('IMAGE_PROCESSING_ON_SERVER')) {
+            return route('getUserPhoto', ['id' => $this->id]);
+        } else {
+            if (filter_var($value, FILTER_VALIDATE_URL)) {
+                return $value;
+            } else {
+                return asset('storage/' . $value);
+            }
+        }
     }
 }
+
+//   https://ui-avatars.com/api/?name=' . $this->name . '+' . $this->surname . '&color=7F9CF5&background=EBF4FF

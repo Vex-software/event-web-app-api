@@ -13,9 +13,15 @@ class SocialMediaLink extends Model
         'type', 'link'
     ];
 
+    protected $hidden = [
+        'id',
+        'created_at',
+        'updated_at',
+    ];
+
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->hasOne(User::class);
     }
 
     public function club()

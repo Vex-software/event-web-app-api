@@ -14,8 +14,15 @@ class EventCategory extends Model
         'name'
     ];
 
-    public function category()
+    protected $hidden = [
+        'created_at',
+        'updated_at',
+    ];
+
+    public function events()
     {
-        return $this->belongsTo(Category::class);
+        return $this->hasMany(Event::class);
     }
+
+    
 }

@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Club;
 use Illuminate\Http\JsonResponse;
-
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 
 class ClubController extends Controller
 {
@@ -17,6 +20,7 @@ class ClubController extends Controller
     public function index()
     {
         $clubs = Club::paginate(6);
+        $clubs->load('manager', 'users', 'events');
         return response()->json($clubs, 200);
     }
 
@@ -28,14 +32,11 @@ class ClubController extends Controller
     public function show(int $id): JsonResponse
     {
         $club = Club::findOrFail($id);
-        $clubUsers = $club->users()->paginate(6);
-        $clubManager = $club->manager()->get();
-        $clubEvents = $club->events()->paginate(6);
+        $club->load('users');
+        $club->load('manager');
+        $club->load('events');
         return response()->json([
             'club' => $club,
-            'clubUsers' => $clubUsers,
-            'clubManager' => $clubManager,
-            'clubEvents' => $clubEvents
         ], 200);
     }
 
@@ -61,5 +62,30 @@ class ClubController extends Controller
         $club = Club::findOrFail($clubId);
         $clubEvents = $club->events()->paginate(6);
         return response()->json($clubEvents, 200);
+    }
+
+    public function clubPhoto($id)
+    {
+        $query = DB::table('clubs')->select('logo')->where('id', $id)->get();
+
+        if ($query->count() <= 0) {
+            return abort(404);
+        }
+        $path = $query[0]->logo;
+
+
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            $type = get_headers($path, 1)["Content-Type"];
+            return response()->stream(function () use ($path) {
+                echo file_get_contents($path);
+            }, 200, ['Content-Type' => $type]);
+        } else {
+            if (!File::exists($path)) {
+                abort(404);
+            }
+
+            $type = File::mimeType($path);
+            return response()->file($path, ['Content-Type' => $type]);
+        }
     }
 }

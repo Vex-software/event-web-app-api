@@ -5,13 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\EventCategory;
 
 class Event extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $dates = ['deleted_at'];
-    
+
     protected $fillable =
     [
         'name',
@@ -39,6 +40,7 @@ class Event extends Model
         'created_at',
         'updated_at',
         'deleted_at',
+        'pivot',
     ];
 
     protected static $hiddenClubFields = ['phone_number', 'email', 'created_at', 'updated_at', 'deleted_at'];
@@ -57,4 +59,17 @@ class Event extends Model
         return $this->belongsToMany(User::class);
     }
 
+    // public function eventCategory()
+    // {
+    //     return $this->belongsTo(EventCategory::class);
+    // }
+
+    public function category()
+    {
+        return $this->belongsTo(EventCategory::class, 'id');
+    }
+    public function getImageAttribute($value)
+    {
+        return route('getEventPhoto', ['id' => $this->id]);
+    }
 }

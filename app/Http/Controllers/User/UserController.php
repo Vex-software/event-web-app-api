@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\User;
 
+use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Http\JsonResponse;
 use App\Models\Role;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -26,6 +28,7 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $users = User::paginate(6);
+        // $users = User::manipulateProfilePhotoPath($users);
         return $users;
     }
 
@@ -34,13 +37,14 @@ class UserController extends Controller
      * @param int $id
      * @return JsonResponse
      */
-    public function show(int $id): JsonResponse
+    public function show(string $id): JsonResponse
     {
         $user = User::findOrFail($id);
         $userClubs = $user->clubs()->paginate(6);
+        // $user = User::manipulateProfilePhotoPath([$user]);
         return response()->json([
             'user' => $user,
-            'user-clubs' => $userClubs
+            'joined-clubs' => $userClubs
         ], 200);
     }
 
@@ -52,7 +56,11 @@ class UserController extends Controller
     public function userClubs(int $userId): JsonResponse
     {
         $clubs = User::find($userId)->clubs()->paginate(6);
+        // $clubs = Club::manipulateLogoPath($clubs);
         return response()->json($clubs, 200);
+
+
+        return response()->json($clubs[2], 200);
     }
 
     /**
@@ -297,22 +305,21 @@ class UserController extends Controller
     public function deletePhoto(): JsonResponse
     {
         $user = User::find(auth()->user()->id);
+
         if (!$user) {
             return response()->json(['error' => 'Kullanıcı bulunamadı'], 404, [], JSON_UNESCAPED_UNICODE);
         }
 
-        if (!empty($user->profile_photo_path)) {
-            // Profil fotoğrafını sil
-            Storage::delete($user->profile_photo_path);
-
-            // Eski profil fotoğrafı adını tutan veri tabanı alanını null yap
+        if ($user->profile_photo_path) {
+            if (Storage::exists($user->profile_photo_path)) {
+                Storage::delete($user->profile_photo_path);
+            }
             $user->profile_photo_path = null;
             $user->save();
-
             return response()->json(['success' => 'Profil fotoğrafı silindi'], 200, [], JSON_UNESCAPED_UNICODE);
+        } else {
+            return response()->json(['error' => 'Profil fotoğrafı bulunamadı'], 404, [], JSON_UNESCAPED_UNICODE);
         }
-
-        return response()->json(['error' => 'Profil fotoğrafı bulunamadı'], 404, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
@@ -330,10 +337,10 @@ class UserController extends Controller
      * Get Authenticated user joined clubs
      * @return JsonResponse
      */
-    public function myClubs(): JsonResponse
+    public function joinedClubs(): JsonResponse
     {
         $user = User::find(auth()->user()->id);
-        $clubs = $user->clubs()->paginate(6);
+        $clubs = $user->clubs()->with('manager')->paginate(6);
 
         return response()->json($clubs, 200, [], JSON_UNESCAPED_UNICODE);
     }
@@ -342,10 +349,25 @@ class UserController extends Controller
      * Get Authenticated user joined events
      * @return JsonResponse
      */
-    public function myEvents(): JsonResponse
+    public function joinedEvents(): JsonResponse
     {
         $user = User::find(auth()->user()->id);
-        $events = $user->events()->paginate(6);
+        $events = $user->events()->with('eventCategory')->with('club')->paginate(6);
+
+        // $events->getCollection()->transform(function ($event) {
+        //     return [
+        //         'id' => $event->id,
+        //         'name' => $event->name,
+        //         'category' => $event->eventCategory->name,
+        //         'club' => $event->club->name,
+        //         'start_date' => $event->start_date,
+        //         'end_date' => $event->end_date,
+        //         'created_at' => $event->created_at,
+        //         'updated_at' => $event->updated_at,
+        //         'deleted_at' => $event->deleted_at,
+        //     ];
+        // });
+
 
         return response()->json($events, 200, [], JSON_UNESCAPED_UNICODE);
     }
@@ -354,51 +376,67 @@ class UserController extends Controller
      * Get Authenticated user profile photo
      * @return JsonResponse
      */
-    public function myPhoto(): JsonResponse
+    public function myPhoto()
     {
         $user = User::find(auth()->user()->id);
-        $photo = $user->profile_photo_path;
-        $path = storage_path('app/' . $photo);
+        $path = $user->profile_photo_path;
 
-        if (!File::exists($path)) {
-            return response()->json(['error' => 'Fotoğraf bulunamadı'], 404, [], JSON_UNESCAPED_UNICODE);
+        if (empty($path)) {
+            return abort(404);
         }
 
-        $file = File::get($path);
-        $type = File::mimeType($path);
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            $type = get_headers($path, 1)["Content-Type"];
+            return response()->stream(function () use ($path) {
+                echo file_get_contents($path);
+            }, 200, ['Content-Type' => $type]);
+        } else {
+            if (!File::exists($path)) {
+                abort(404);
+            }
 
-        return response($file, 200)->header('Content-Type', $type);
+            $type = File::mimeType($path);
+            return response()->file($path, ['Content-Type' => $type]);
+        }
     }
 
     /**
      * Get Authenticated user profile
+     * Not : Kullanıcı kendi bilgilerinin tamamını görebilir
      * @return JsonResponse
      */
-    public function whoAmI(): JsonResponse
+    public function whoAmI()
     {
-        $user = auth()->user();
-        return response()->json(['user' => $user], 200, [], JSON_UNESCAPED_UNICODE);
+        $user = User::find(auth()->user()->id);
+
+        return $user->getAllAttributes();
+        // return response()->json(['user' => $user], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
-    /**
-     * Get user profile photo by id
-     * @param int $id
-     * @return Response
-     */
-    public function userPhoto(int $id): Response
+    public function userPhoto($id)
     {
-        $user = User::find($id);
+        $query = DB::table('users')->select('profile_photo_path')->where('id', $id)->get();
 
-        $photo = $user->profile_photo_path;
-        $path = storage_path('app/' . $photo);
 
-        if (!File::exists($path)) {
+
+        if ($query->count() <= 0) {
             abort(404);
         }
 
-        $file = File::get($path);
-        $type = File::mimeType($path);
+        $path = $query[0]->profile_photo_path;
 
-        return response($file, 200)->header('Content-Type', $type);
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            $type = get_headers($path, 1)["Content-Type"];
+            return response()->stream(function () use ($path) {
+                echo file_get_contents($path);
+            }, 200, ['Content-Type' => $type]);
+        } else {
+            if (!File::exists($path)) {
+                abort(404);
+            }
+
+            $type = File::mimeType($path);
+            return response()->file($path, ['Content-Type' => $type]);
+        }
     }
 }

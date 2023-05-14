@@ -18,32 +18,34 @@ Route::prefix('auth')->group(function () {
     Route::post('/logout', [Guest\LoginController::class, 'logout'])->middleware('auth:api');
 
     //mail atilma durumu kontrol edilmedi
-    Route::post('/lost-password', [Guest\LoginController::class, 'lostPassword'])->middleware('auth:api');
-
+    Route::post('/lost-password', [Guest\LoginController::class, 'lostPassword']);
     Route::post('/reset-password', [Guest\LoginController::class, 'resetPassword']);
     Route::post('/email/verify', [Guest\LoginController::class, 'verifyEmail'])->name('verification.verify');
-
     Route::get('/email/resend', [Guest\LoginController::class, 'resendEmail'])->name('verification.resend');
 });
 
 
 Route::middleware('auth:api')->group(function () {
+
     Route::get('/who-am-i', [User\UserController::class, 'whoAmI']); // oturum bilgileri kime ait?
-    Route::get('/my-clubs', [User\UserController::class, 'myClubs']); // oturum açan kullanıcının üye olduğu kulüpler
-    Route::get('/my-events', [User\UserController::class, 'myEvents']); // oturum açan kullanıcının dahil olduğu etkinlikler
+    Route::get('/joined-clubs', [User\UserController::class, 'joinedClubs']); // oturum açan kullanıcının üye olduğu kulüpler
+    Route::get('/joined-events', [User\UserController::class, 'joinedEvents']); // oturum açan kullanıcının dahil olduğu etkinlikler
     Route::get('/my-photo', [User\UserController::class, 'myPhoto']); // oturum açan kullanıcının profil fotoğrafı
 
     Route::prefix('user')->group(function () {
-        
+
         Route::get('/all', [User\UserController::class, 'index']); // Kullanıcılar
         Route::get('/{id}', [User\UserController::class, 'show']); // Kullanıcı bilgileri
 
         Route::get('/{id}/clubs', [User\UserController::class, 'userClubs']); // Kullanıcının üye olduğu kulüpler
         Route::get('/{id}/events', [User\UserController::class, 'userEvents']); // Kullanıcının dahil olduğu etkinlikler
-        Route::get('/{id}/photo', [User\UserController::class, 'userPhoto']); // Kullanıcının profil fotoğrafı
 
+        Route::get('/{id}/photo', [User\UserController::class, 'userPhoto'])->name('getUserPhoto'); // Kullanıcının profil fotoğrafı
+
+     
         Route::post('/join-club/{clubId}', [User\UserController::class, 'joinClub']); // Kulübe katıl
         Route::post('/leave-club/{clubId}', [User\UserController::class, 'leaveClub']); // Kulüpten ayrıl
+
 
         Route::post('/join-event/{eventId}', [User\UserController::class, 'joinEvent']); // Etkinliğe katıl
         Route::post('/leave-event/{eventId}', [User\UserController::class, 'leaveEvent']); // Etkinlikten ayrıl
@@ -58,6 +60,8 @@ Route::middleware('auth:api')->group(function () {
     Route::prefix('club')->group(function () {
         Route::get('/all', [User\ClubController::class, 'index']); // Kulüpler
         Route::get('/{id}', [User\ClubController::class, 'show']); // Kulüp bilgileri
+        Route::get('/{id}/photo', [User\ClubController::class, 'clubPhoto'])->name('getClubPhoto'); // Kulübün profil fotoğrafı
+
         Route::get('/{id}/users', [User\ClubController::class, 'clubUsers']); // Kulübe üye olan kullanıcılar
         Route::get('/{id}/events', [User\ClubController::class, 'clubEvents']); // Kulübün etkinlikleri
     });
@@ -66,9 +70,9 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/all', [User\EventController::class, 'index']); // Etkinlikler
         Route::get('/{id}', [User\EventController::class, 'show']); // Etkinlik bilgileri
         Route::get('/{id}/users', [User\EventController::class, 'eventUsers']); // Etkinliğe katılan kullanıcılar
+        Route::get('/{id}/photo', [User\EventController::class, 'eventPhoto'])->name('getEventPhoto'); // Etkinliğin profil fotoğrafı
         Route::get('/{id}/club', [User\EventController::class, 'eventClub']); // Etkinliğin ait olduğu kulüp
     });
-
 
 
     Route::prefix('admin')->middleware('checkrole:admin')->group(function () {
