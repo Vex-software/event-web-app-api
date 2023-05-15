@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
 use App\Models\Role;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Club;
+use Illuminate\Contracts\Cache\Store;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 
@@ -34,7 +35,7 @@ class ClubController extends Controller
     public function club($id)
     {
         $club = Club::find($id);
-        if(!$club) {
+        if (!$club) {
             return response()->json(['error' => 'Kulüp bulunamadı.'], 404);
         }
         $club->makeVisible($this->clubHiddens);
@@ -102,12 +103,22 @@ class ClubController extends Controller
             return response()->json(['error' => $validator->errors()], 422);
         }
 
+        if ($request->hasFile('logo')) {
+            $logo = $request->file('logo');
+            if (Storage::exists($club->logo)) {
+                Storage::delete($club->logo);
+            }
+            $logoName = time() . '.' . $logo->getClientOriginalExtension();
+            $logo->storeAs('public/logos', $logoName);
+            $club->logo = $logoName;
+        }
+
         $club->name = $request->name;
         $club->title = $request->title;
         $club->description = $request->description;
-        if ($request->logo) {
-            $club->logo = $request->logo;
-        }
+        // if ($request->logo) {
+        //     $club->logo = $request->logo;
+        // }
         $club->email = $request->email;
         $club->phone_number = $request->phone_number;
         if ($request->website) {
@@ -124,13 +135,7 @@ class ClubController extends Controller
         }
         $club->save();
 
-        if ($request->hasFile('logo')) {
-            $logo = $request->file('logo');
-            Storage::delete($club->logo);
-            $logoName = time() . '.' . $logo->getClientOriginalExtension();
-            $logo->storeAs('public/logos', $logoName);
-            $club->logo = $logoName;
-        }
+
 
         return response()->json(['message' => 'Kulüp başarıyla güncellendi.'], 200);
     }
@@ -139,7 +144,7 @@ class ClubController extends Controller
     public function deleteClub($id): JsonResponse
     {
         $club = Club::withTrashed()->findOrFail($id);
-        if(!$club){
+        if (!$club) {
             return response()->json(['error' => 'Kulüp bulunamadı.'], 400);
         }
 
@@ -212,7 +217,7 @@ class ClubController extends Controller
     public function deletedClubs(): JsonResponse
     {
         $clubs = Club::onlyTrashed()->paginate(6);
-        $clubs->makeVisible($this->clubHiddens);
+        $clubs->makeVisible($this->clubHiddens); // makeVisible() methodu ile gizli alanları görünür hale getirdim. Editör hata verebilir
         return response()->json($clubs, 200);
     }
 
@@ -225,6 +230,4 @@ class ClubController extends Controller
         $club->makeVisible($this->clubHiddens);
         return response()->json($club, 200);
     }
-
-
 }

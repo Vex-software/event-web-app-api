@@ -229,7 +229,7 @@ class EventController extends Controller
     public function deletedEvents()
     {
         $events = Event::onlyTrashed()->paginate(6);
-        $events->makeVisible($this->eventHiddens);
+        $events->makeVisible($this->eventHiddens); // makeVisible() methodu ile gizli alanları görünür hale getirdim. Editör hata verebilir
         return response()->json($events, 200);
     }
 

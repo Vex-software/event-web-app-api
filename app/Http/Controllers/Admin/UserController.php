@@ -206,7 +206,7 @@ class UserController extends Controller
     public function deletedUsers(): JsonResponse
     {
         $users = User::onlyTrashed()->paginate(6);
-        $users->makeVisible($this->userHiddens);
+        $users->makeVisible($this->userHiddens); // makeVisible() methodu ile gizli alanları görünür hale getirdim. Editör hata verebilir
         return response()->json($users, 200);
     }
 

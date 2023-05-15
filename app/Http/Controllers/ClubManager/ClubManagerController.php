@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Event;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 
@@ -136,7 +137,6 @@ class ClubManagerController extends Controller
         ], 200);
     }
 
-
     public function myClub()
     {
         $user = auth()->user();
@@ -206,6 +206,83 @@ class ClubManagerController extends Controller
 
         return response()->json([
             'message' => 'Üye başarıyla kulüpten çıkarıldı.',
+        ], 200);
+    }
+
+    public function updateClub(Request $request)
+    {
+        $user = auth()->user();
+        $club = $user->managerOfClub;
+
+        $validator = Validator::make($request->all(), [
+            'name' => ['required', 'string', 'max:255', 'unique:clubs,name,' . $club->id],
+            'title' => 'required|string',
+            'description' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:clubs,email,' . $club->id],
+            'phone_number' => ['required', 'string', 'max:255', 'unique:clubs,phone_number,' . $club->id],
+            'address' => ['required', 'string', 'max:255', 'unique:clubs,address,' . $club->id],
+            'website' => 'nullable',
+            'founded_year' => 'nullable|date',
+            'city_id' => ['required', 'integer', 'exists:cities,id'],
+            'logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 422);
+        }
+
+        if (request()->hasFile('logo')) {
+            $file = request()->file('logo');
+            if (Storage::exists($club->logo)) {
+                Storage::delete($club->logo);
+            }
+            $path = $file->store('public/clubs');
+            $club->logo = $path;
+            $club->save();
+        }
+
+        $club->name = request()->name;
+        $club->description = request()->description;
+        $club->email = request()->email;
+        $club->phone = request()->phone;
+        $club->location = request()->location;
+        if (request()->logo) {
+            $club->logo = request()->logo;
+        }
+        if (request()->facebook) {
+            $club->facebook = request()->facebook;
+        }
+        if (request()->twitter) {
+            $club->twitter = request()->twitter;
+        }
+        if (request()->instagram) {
+            $club->instagram = request()->instagram;
+        }
+        if (request()->website) {
+            $club->website = request()->website;
+        }
+        $club->save();
+
+
+        return response()->json([
+            'message' => 'Kulüp başarıyla güncellendi.',
+            'club' => $club,
+        ], 200);
+    }
+
+    public function deletePhoto()
+    {
+        $user = auth()->user();
+        $club = $user->managerOfClub;
+
+        if (Storage::exists($club->logo)) {
+            Storage::delete($club->logo);
+        }
+        $club->logo = null;
+        $club->save();
+
+        return response()->json([
+            'message' => 'Kulüp logosu başarıyla silindi.',
         ], 200);
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin;
 use App\Http\Controllers\ClubManager;
 use App\Http\Controllers\Guest;
 use App\Http\Controllers\Guest\LoginController;
+use App\Models\Role;
 
 Route::get('/', function () {
     return response()->json(['message' => 'Buyrun burası API!']);
@@ -26,14 +27,12 @@ Route::prefix('auth')->group(function () {
 
 
 Route::middleware('auth:api')->group(function () {
-
     Route::get('/who-am-i', [User\UserController::class, 'whoAmI']); // oturum bilgileri kime ait?
     Route::get('/joined-clubs', [User\UserController::class, 'joinedClubs']); // oturum açan kullanıcının üye olduğu kulüpler
     Route::get('/joined-events', [User\UserController::class, 'joinedEvents']); // oturum açan kullanıcının dahil olduğu etkinlikler
     Route::get('/my-photo', [User\UserController::class, 'myPhoto']); // oturum açan kullanıcının profil fotoğrafı
 
     Route::prefix('user')->group(function () {
-
         Route::get('/all', [User\UserController::class, 'index']); // Kullanıcılar
         Route::get('/{id}', [User\UserController::class, 'show']); // Kullanıcı bilgileri
 
@@ -81,12 +80,14 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/my-club/user/all', [ClubManager\ClubManagerController::class, 'getClubMembers']); // Kulübüme üye olan kullanıcılar
         Route::get('/my-club/event/all', [ClubManager\ClubManagerController::class, 'myClubEvents']); // Kulübümün etkinlikleri
 
+        Route::patch('/my-club/update', [ClubManager\ClubManagerController::class, 'updateClub']); // Yöneticisi olduğu kulüp bilgilerini güncelle
+        Route::delete('/my-club/delete-photo', [ClubManager\ClubManagerController::class, 'deletePhoto']); // Kulübümün profil fotoğrafını sil
+
 
         Route::post('/create-event', [ClubManager\ClubManagerController::class, 'createEvent']); // Etkinlik oluştur
         Route::patch('/update-event/{id}', [ClubManager\ClubManagerController::class, 'updateEvent']); // Etkinlik bilgilerini güncelle
         Route::delete('/delete-event/{id}', [ClubManager\ClubManagerController::class, 'deleteEvent']); // Etkinliği sil
 
-        Route::get('/update-club/{id}', [ClubManager\ClubManagerController::class, 'updateClub']); // Kulüp bilgilerini güncelle
     });
 
 
