@@ -83,11 +83,9 @@ Route::middleware('auth:api')->group(function () {
         Route::patch('/my-club/update', [ClubManager\ClubManagerController::class, 'updateClub']); // Yöneticisi olduğu kulüp bilgilerini güncelle
         Route::delete('/my-club/delete-photo', [ClubManager\ClubManagerController::class, 'deletePhoto']); // Kulübümün profil fotoğrafını sil
 
-
         Route::post('/create-event', [ClubManager\ClubManagerController::class, 'createEvent']); // Etkinlik oluştur
         Route::patch('/update-event/{id}', [ClubManager\ClubManagerController::class, 'updateEvent']); // Etkinlik bilgilerini güncelle
         Route::delete('/delete-event/{id}', [ClubManager\ClubManagerController::class, 'deleteEvent']); // Etkinliği sil
-
     });
 
 

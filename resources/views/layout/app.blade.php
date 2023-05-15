@@ -11,6 +11,7 @@
     <meta name="description"
         content="Kulüplerin ve kullanıcıların buluştuğu sanal mekan: VEX Software! Gelişmeleri takip edin, paylaşımlarda bulunun ve yeni etkinlikler keşfedin!">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
     <link rel="manifest" href="{{ asset('manifest.json') }}">
     <link rel="stylesheet" href="{{ asset('style/app.css') }}">
     <title>{{ env('APP_NAME') }} @yield('title')</title>

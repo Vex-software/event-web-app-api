@@ -33,7 +33,6 @@ return new class extends Migration
 
 
             $table->string('google_id')->nullable();
-            $table->string('github_id')->nullable();
 
 
             $table->foreignId('social_media_id')->nullable()->constrained('social_media_links')->onDelete('set null');

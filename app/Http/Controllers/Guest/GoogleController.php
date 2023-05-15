@@ -41,7 +41,7 @@ class GoogleController extends Controller
     // }
 
 
-    public function handleGoogleCallback(): RedirectResponse
+    public function handleGoogleCallback()
     {
         try {
             $user = Socialite::driver('google')->user();
@@ -56,12 +56,54 @@ class GoogleController extends Controller
         // Generate a personal access token using Laravel Passport
         $passportToken = $authUser->createToken('authToken')->accessToken;
 
-        return redirect(env('FRONT_APP_URL'))->withCookie(
-            cookie('jwt', $passportToken, 60 * 24, null, null, false, true)
-        );
         
+        $authUser->token = $passportToken;
 
+
+        // return redirect(env('FRONT_APP_URL'))->withCookie(
+        //     cookie('jwt', $passportToken, 60 * 24, null, null, false, true)
+        // );
+        
+        // Parent pencereye yönlendirme
+        return $this->redirectParent($authUser);
+
+        // return "<script>window.opener.location.href = '/success?token=$passportToken'; window.close();</script>";
+        // return '<script>window.opener.postMessage(' . json_encode($user) . ', "http://127.0.0.1:8000/login"); window.close();</script>';
     }
+
+
+
+
+    function redirectParent($data)
+    {
+        $csrf_token = csrf_token();
+
+        // Convert PHP object to JSON string
+        $json_data = json_encode($data);
+
+
+        return "<script>
+                    const form = window.opener.document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/login';
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = '_token';
+                    tokenInput.value = '$csrf_token';
+                    form.appendChild(tokenInput);
+                    const dataInput = document.createElement('input');
+                    dataInput.type = 'hidden';
+                    dataInput.name = 'data';
+                    dataInput.value = '$json_data';
+                    form.appendChild(dataInput);
+                    window.opener.document.body.appendChild(form);
+                    form.submit();
+                    window.close();
+              </script>";
+    }
+
+
+
 
 
     /**
@@ -76,7 +118,7 @@ class GoogleController extends Controller
 
         if ($authUser) {
             // Collect the current user attributes
-            
+
             $attributes = [
                 'name' => $authUser->name,
                 'surname' => $authUser->surname,
