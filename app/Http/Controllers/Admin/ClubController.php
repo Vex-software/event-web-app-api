@@ -11,9 +11,36 @@ use App\Models\Role;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Club;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 
 class ClubController extends Controller
 {
+    protected $clubHiddens = [
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'email',
+        'phone_number',
+        'pivot',
+    ];
+
+    public function clubs()
+    {
+        $clubs = Club::paginate(10);
+        $clubs->makeVisible($this->clubHiddens);
+        return response()->json($clubs, 200);
+    }
+
+    public function club($id)
+    {
+        $club = Club::find($id);
+        if(!$club) {
+            return response()->json(['error' => 'Kulüp bulunamadı.'], 404);
+        }
+        $club->makeVisible($this->clubHiddens);
+        return response()->json($club, 200);
+    }
+
     public function createClub(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -58,15 +85,17 @@ class ClubController extends Controller
         $club = Club::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string',
+            'name' => ['required', 'string', 'max:255', 'unique:clubs,name,' . $club->id],
             'title' => 'required|string',
-            'description' => 'required',
-            'logo' => 'nullable',
-            'email' => 'required|email',
-            'phone_number' => 'required',
+            'description' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:clubs,email,' . $club->id],
+            'phone_number' => ['required', 'string', 'max:255', 'unique:clubs,phone_number,' . $club->id],
+            'address' => ['required', 'string', 'max:255', 'unique:clubs,address,' . $club->id],
             'website' => 'nullable',
             'founded_year' => 'nullable|date',
             'manager_id' => 'required|integer',
+            'city_id' => ['required', 'integer', 'exists:cities,id'],
+            'logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
         ]);
 
         if ($validator->fails()) {
@@ -84,22 +113,40 @@ class ClubController extends Controller
         if ($request->website) {
             $club->website = $request->website;
         }
+        $club->address = $request->address;
         if ($request->founded_year) {
             $club->founded_year = $request->founded_year;
         }
         $club->manager_id = $request->manager_id;
+        $club->city_id = $request->city_id;
+        if ($request->logo != null) {
+            $club->logo = $request->logo;
+        }
         $club->save();
+
+        if ($request->hasFile('logo')) {
+            $logo = $request->file('logo');
+            Storage::delete($club->logo);
+            $logoName = time() . '.' . $logo->getClientOriginalExtension();
+            $logo->storeAs('public/logos', $logoName);
+            $club->logo = $logoName;
+        }
 
         return response()->json(['message' => 'Kulüp başarıyla güncellendi.'], 200);
     }
 
+
     public function deleteClub($id): JsonResponse
     {
         $club = Club::withTrashed()->findOrFail($id);
+        if(!$club){
+            return response()->json(['error' => 'Kulüp bulunamadı.'], 400);
+        }
 
         if ($club->trashed()) {
             return response()->json(['error' => 'Kulüp zaten silinmiş.'], 400);
         }
+
         $club->delete();
         return response()->json(['message' => 'Kulüp başarıyla silindi.'], 200);
     }
@@ -109,7 +156,7 @@ class ClubController extends Controller
         $club = Club::withTrashed()->findOrFail($id);
 
         if (!$club->trashed()) {
-            return response()->json(['error' => 'Kulüp zaten silinmemiş.'], 400);
+            return response()->json(['error' => 'Kulüp zaten aktif.'], 400);
         }
         $club->restore();
         return response()->json(['message' => 'Kulüp başarıyla geri yüklendi.'], 200);
@@ -161,4 +208,23 @@ class ClubController extends Controller
         $events = Club::find($clubId)->events()->paginate(6);
         return response()->json($events, 200);
     }
+
+    public function deletedClubs(): JsonResponse
+    {
+        $clubs = Club::onlyTrashed()->paginate(6);
+        $clubs->makeVisible($this->clubHiddens);
+        return response()->json($clubs, 200);
+    }
+
+    public function deletedClub($id): JsonResponse
+    {
+        $club = Club::onlyTrashed()->find($id);
+        if (!$club) {
+            return response()->json(['error' => 'Kulüp bulunamadı.'], 400);
+        }
+        $club->makeVisible($this->clubHiddens);
+        return response()->json($club, 200);
+    }
+
+
 }

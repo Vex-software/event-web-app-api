@@ -6,38 +6,46 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
-
+use App\Models\Club;
+use App\Models\Event;
+use App\Models\Role;
+use Illuminate\Contracts\Cache\Store;
+use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
-    public function __construct()
+    // public function __construct()
+    // {
+    //     $this->middleware('auth:admin');
+    // }
+
+  
+
+    public function updateEvent(Request $request, $id)
     {
-        $this->middleware('auth:admin');
+        $event = Event::findOrFail($id);
     }
 
-    /**
-     * Update user role.
-     * @param Request $request
-     * @param int $id
-     * @return JsonResponse
-     */
-    public function updateRole(Request $request, $id): JsonResponse
+
+    public function deleteClub($id)
+    {
+        $club = Club::findOrFail($id);
+        $club->delete();
+        return response()->json(['message' => 'Kulüp başarıyla silindi.'], 200);
+    }
+
+    public function deleteEvent($id)
+    {
+        $event = Event::findOrFail($id);
+        $event->delete();
+        return response()->json(['message' => 'Etkinlik başarıyla silindi.'], 200);
+    }
+
+    public function deleteUser($id)
     {
         $user = User::findOrFail($id);
-
-        $validator = Validator::make($request->all(), [  ///  bu sekilde olmamali.
-            'role' => Rule::in(['club_manager', 'admin', 'user'])
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => 'Geçersiz rol'], 400);
-        }
-
-        $user->role = $request->role;
-        $user->save();
-
-        return response()->json(['message' => 'Kullanıcının rolü başarıyla güncellendi.'], 200);
+        $user->delete();
+        return response()->json(['message' => 'Kullanıcı başarıyla silindi.'], 200);
     }
 }

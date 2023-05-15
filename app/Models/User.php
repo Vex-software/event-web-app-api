@@ -58,7 +58,7 @@ class User extends Authenticatable
         'role_id',
     ];
 
-    // Bu Gizli Alanlar sadece Authenticated User'a aittir.
+    // Bu Gizli Alanlar sadece Authenticated User'in kendi bilgilerini görmesini engellemek için kullanılır.
     protected $hiddenForAuthUser = [
         'password',
         'remember_token',
@@ -69,6 +69,8 @@ class User extends Authenticatable
         'google_id',
         'github_id',
     ];
+
+
 
     public function getAllAttributes()
     {
@@ -94,22 +96,23 @@ class User extends Authenticatable
         return $allAttributes;
     }
 
+
+
+
     public function isUser()
     {
         return $this->role_id === Role::where('slug', 'user')->first()->id;
     }
 
-    // public function toArray()
-    // {
-    //     $array = parent::toArray();
-    //     $array['role'] = $this->role->slug;
-    //     return $array;
-    // }
-
 
     public function isClubManager()
     {
         return $this->role_id === Role::where('slug', 'club_manager')->first()->id;
+    }
+
+    public function isAdmin()
+    {
+        return $this->role_id === Role::where('slug', 'admin')->first()->id;
     }
 
 

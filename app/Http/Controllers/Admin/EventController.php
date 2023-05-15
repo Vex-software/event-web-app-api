@@ -14,6 +14,43 @@ use App\Models\Event;
 
 class EventController extends Controller
 {
+
+    protected $eventHiddens = [
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'pivot',
+    ];
+
+
+    //    /**
+    //  * Get all events.
+    //  * @return Response
+    //  */
+    // public function events()
+    // {
+    //     $events = Event::withTrashed()->paginate(10);
+    //     return response()->json($events, 200);
+    // }
+
+
+    public function events()
+    {
+        $events = Event::paginate(10);
+        $events->makeVisible($this->eventHiddens);
+        return response()->json($events, 200);
+    }
+
+    public function event($id)
+    {
+        $event = Event::find($id);
+        if (!$event) {
+            return response()->json(['error' => 'Etkinlik bulunamadı.'], 404);
+        }
+        $event->makeVisible($this->eventHiddens);
+        return response()->json($event, 200);
+    }
+
     public function createEvent(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -131,7 +168,7 @@ class EventController extends Controller
         return response()->json($users, 200);
     }
 
-        /**
+    /**
      * Get club of the event.
      * @param int $eventId
      * @return Response
@@ -147,20 +184,13 @@ class EventController extends Controller
      * @param int $eventId
      * @return Response
      */
-    public function eventCategory($eventId){
+    public function eventCategory($eventId)
+    {
         $category = Event::find($eventId)->category()->get();
         return response()->json($category, 200);
     }
 
-    /**
-     * Get all events.
-     * @return Response
-     */
-    public function events()
-    {
-        $events = Event::withTrashed()->paginate(6);
-        return response()->json($events, 200);
-    }
+
 
     /**
      * Get all events of the club.
@@ -193,6 +223,21 @@ class EventController extends Controller
     {
         $events = User::find($userId)->events()->paginate(6);
         return response()->json($events, 200);
+    }
+
+
+    public function deletedEvents()
+    {
+        $events = Event::onlyTrashed()->paginate(6);
+        $events->makeVisible($this->eventHiddens);
+        return response()->json($events, 200);
+    }
+
+    public function deletedEvent($id)
+    {
+        $event = Event::onlyTrashed()->findOrFail($id);
+        $event->makeVisible($this->eventHiddens);
+        return response()->json($event, 200);
     }
 
     // /**

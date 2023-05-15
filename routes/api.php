@@ -42,7 +42,7 @@ Route::middleware('auth:api')->group(function () {
 
         Route::get('/{id}/photo', [User\UserController::class, 'userPhoto'])->name('getUserPhoto'); // Kullanıcının profil fotoğrafı
 
-     
+
         Route::post('/join-club/{clubId}', [User\UserController::class, 'joinClub']); // Kulübe katıl
         Route::post('/leave-club/{clubId}', [User\UserController::class, 'leaveClub']); // Kulüpten ayrıl
 
@@ -50,10 +50,10 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/join-event/{eventId}', [User\UserController::class, 'joinEvent']); // Etkinliğe katıl
         Route::post('/leave-event/{eventId}', [User\UserController::class, 'leaveEvent']); // Etkinlikten ayrıl
 
-        Route::post('/update-profile', [User\UserController::class, 'updateProfile']); // oturum açan kullanıcının profil bilgilerini güncelle
-        Route::post('/update-password', [User\UserController::class, 'updatePassword']); // oturum açan kullanıcının şifresini güncelle
+        Route::patch('/update-profile', [User\UserController::class, 'updateProfile']); // oturum açan kullanıcının profil bilgilerini güncelle
+        Route::patch('/update-password', [User\UserController::class, 'updatePassword']); // oturum açan kullanıcının şifresini güncelle
 
-        Route::post('delete-photo', [User\UserController::class, 'deletePhoto']); // oturum açan kullanıcının profil fotoğrafını sil
+        Route::delete('delete-photo', [User\UserController::class, 'deletePhoto']); // oturum açan kullanıcının profil fotoğrafını sil
 
     });
 
@@ -75,43 +75,55 @@ Route::middleware('auth:api')->group(function () {
     });
 
 
-    Route::prefix('admin')->middleware('checkrole:admin')->group(function () {
-        Route::get('/club-managers', [Admin\AdminController::class, 'clubManagers']); // Kulüp yöneticileri
-
-        Route::post('/update-user-role/{id}', [Admin\AdminController::class, 'updateRole']); // Kullanıcının yetkisini değiştir
-        Route::post('/delete-user/{id}', [Admin\AdminController::class, 'deleteUser']); // Kullanıcıyı sil
-        Route::post('/restore-user/{id}', [Admin\AdminController::class, 'restoreUser']); // Kullanıcıyı geri yükle
-        Route::get('/deleted-users', [Admin\AdminController::class, 'deletedUsers']); // Silinmiş kullanıcılar
-
-        Route::post('/create-club', [Admin\AdminController::class, 'createClub']); // Kulüp oluşturma islemi simdilik adminde.
-        Route::get('/update-club/{id}', [Admin\AdminController::class, 'updateClub']); // Kulüp bilgilerini güncelle
-        Route::post('/delete-club/{id}', [Admin\AdminController::class, 'deleteClub']); // Kulübü silme islemi simdilik adminde.
-
-        //yapilacaklar
-        Route::post('/create-event', [Admin\AdminController::class, 'createEvent']); // Etkinlik oluştur
-        Route::post('/update-event/{id}', [Admin\AdminController::class, 'updateEvent']); // Etkinlik bilgilerini güncelle
-        Route::post('/delete-event/{id}', [Admin\AdminController::class, 'deleteEvent']); // Etkinliği sil
-
-
-
-        Route::get('/deleted-clubs', [Admin\AdminController::class, 'deletedClubs']); // Silinmiş kulüpler
-        Route::get('/deleted-events', [Admin\AdminController::class, 'deletedEvents']); // Silinmiş etkinlikler
-
-        Route::post('/restore-event/{id}', [Admin\AdminController::class, 'restoreEvent']); // Etkinliği geri yükle
-        Route::post('/restore-club/{id}', [Admin\AdminController::class, 'restoreClub']); // Kulübü geri yükle
-    });
-
-
     // Middleware'larda kullanıcının bir kulüp yöneticisi olup olmadığını ve yöneticisi olduğu kulübün varlığını kontrol ediyoruz.
-
     Route::prefix('club-manager')->middleware('checkrole:club_manager', 'check.club.ownership')->group(function () {
+        Route::get('/my-club', [ClubManager\ClubManagerController::class, 'myClub']); // Kulübüm
+        Route::get('/my-club/user/all', [ClubManager\ClubManagerController::class, 'getClubMembers']); // Kulübüme üye olan kullanıcılar
+        Route::get('/my-club/event/all', [ClubManager\ClubManagerController::class, 'myClubEvents']); // Kulübümün etkinlikleri
+
 
         Route::post('/create-event', [ClubManager\ClubManagerController::class, 'createEvent']); // Etkinlik oluştur
-        Route::post('/update-event/{id}', [ClubManager\ClubManagerController::class, 'updateEvent']); // Etkinlik bilgilerini güncelle
-        Route::post('/delete-event/{id}', [ClubManager\ClubManagerController::class, 'deleteEvent']); // Etkinliği sil
+        Route::patch('/update-event/{id}', [ClubManager\ClubManagerController::class, 'updateEvent']); // Etkinlik bilgilerini güncelle
+        Route::delete('/delete-event/{id}', [ClubManager\ClubManagerController::class, 'deleteEvent']); // Etkinliği sil
 
         Route::get('/update-club/{id}', [ClubManager\ClubManagerController::class, 'updateClub']); // Kulüp bilgilerini güncelle
     });
+
+
+    Route::prefix('admin')->middleware('checkrole:admin')->group(function () {
+        Route::get('/user/all', [Admin\UserController::class, 'users']); // Kullanıcılar
+        Route::get('/user/{id}', [Admin\UserController::class, 'user']); // Kullanıcı bilgileri
+
+        Route::get('/club/all', [Admin\ClubController::class, 'clubs']); // Kulüpler
+        Route::get('/club/{id}', [Admin\ClubController::class, 'club']); // Kulüp bilgileri
+
+        Route::get('/club-manager/all', [Admin\ClubManagerController::class, 'clubManagers']); // Kulüp yöneticileri
+        Route::get('/club-manager/{id}', [Admin\ClubManagerController::class, 'clubManager']); // Kulüp yöneticisi bilgileri
+
+        Route::get('/event/all', [Admin\EventController::class, 'events']); // Etkinlikler
+        Route::get('/event/{id}', [Admin\EventController::class, 'event']); // Etkinlik bilgileri
+
+        Route::post('/create-user', [Admin\UserController::class, 'createUser']); // Kullanıcı oluştur
+        Route::patch('/update-user/{id}', [Admin\UserController::class, 'updateUser']); // Kullanıcı bilgilerini güncelle
+        Route::patch('/update-user-role/{id}', [Admin\UserController::class, 'updateRole']); // Kullanıcının yetkisini değiştir
+        Route::delete('/delete-user/{id}', [Admin\UserController::class, 'deleteUser']); // Kullanıcıyı sil
+        Route::get('/deleted-user/all', [Admin\UserController::class, 'deletedUsers']); // Silinmiş kullanıcılar
+        Route::get('/deleted-user/{id}', [Admin\UserController::class, 'deletedUser']); // Silinmiş kullanıcılar
+        Route::patch('/restore-user/{id}', [Admin\UserController::class, 'restoreUser']); // Kullanıcıyı geri yükle
+
+        Route::post('/create-club', [Admin\ClubController::class, 'createClub']); // Kulüp oluştur
+        Route::patch('/update-club/{id}', [Admin\ClubController::class, 'updateClub']); // Kulüp bilgilerini güncelle
+        Route::delete('/delete-club/{id}', [Admin\ClubController::class, 'deleteClub']); // Kulübü sil
+        Route::get('/deleted-club/all', [Admin\ClubController::class, 'deletedClubs']); // Silinmiş kulüpler
+        Route::get('/deleted-club/{id}', [Admin\ClubController::class, 'deletedClub']); // Silinmiş kulüpler
+        Route::patch('/restore-club/{id}', [Admin\ClubController::class, 'restoreClub']); // Kulübü geri yükle
+
+        Route::post('/create-event', [Admin\EventController::class, 'createEvent']); // Etkinlik oluştur
+        Route::patch('/update-event/{id}', [Admin\EventController::class, 'updateEvent']); // Etkinlik bilgilerini güncelle
+        Route::delete('/delete-event/{id}', [Admin\EventController::class, 'deleteEvent']); // Etkinliği sil
+        Route::get('/deleted-event/all', [Admin\EventController::class, 'deletedEvents']); // Silinmiş etkinlikler
+        Route::patch('/restore-event/{id}', [Admin\EventController::class, 'restoreEvent']); // Etkinliği geri yükle
+    });
 });
 
-//kategoriler cekilecek.
+//kategoriler eklenecek..
