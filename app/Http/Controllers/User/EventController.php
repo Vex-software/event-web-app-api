@@ -51,6 +51,8 @@ class EventController extends Controller
         return response()->json($club, 200);
     }
 
+
+
     public function eventUsers($eventId)
     {
         $users = Event::find($eventId)->users()->paginate(6);

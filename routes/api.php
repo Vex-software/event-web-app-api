@@ -8,12 +8,16 @@ use App\Http\Controllers\ClubManager;
 use App\Http\Controllers\Guest;
 use App\Http\Controllers\Guest\LoginController;
 use App\Models\Role;
+use Google\Service\Adsense\Row;
+use Predis\Command\Redis\RPUSH;
 
 Route::get('/', function () {
     return response()->json(['message' => 'Buyrun burası API!']);
 });
 
 Route::prefix('auth')->group(function () {
+    Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
+
     Route::post('/register', [Guest\LoginController::class, 'register']);
     Route::post('/login', [Guest\LoginController::class, 'login']);
     Route::post('/logout', [Guest\LoginController::class, 'logout'])->middleware('auth:api');
@@ -71,6 +75,15 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/{id}/users', [User\EventController::class, 'eventUsers']); // Etkinliğe katılan kullanıcılar
         Route::get('/{id}/photo', [User\EventController::class, 'eventPhoto'])->name('getEventPhoto'); // Etkinliğin profil fotoğrafı
         Route::get('/{id}/club', [User\EventController::class, 'eventClub']); // Etkinliğin ait olduğu kulüp
+       
+    });
+
+    Route::prefix('event-category')->group(function (){
+        Route::get('/all', [User\EventCategoryController::class, 'index']);
+        Route::get('/{id}', [User\EventCategoryController::class, 'show']);
+        Route::get('/{id}/event/all', [User\EventCategoryController::class, 'eventCategoryEvents']);
+
+        Route::get('/search/{name}', [User\EventCategoryController::class, 'searchEventCategory']);
     });
 
 
@@ -122,6 +135,16 @@ Route::middleware('auth:api')->group(function () {
         Route::delete('/delete-event/{id}', [Admin\EventController::class, 'deleteEvent']); // Etkinliği sil
         Route::get('/deleted-event/all', [Admin\EventController::class, 'deletedEvents']); // Silinmiş etkinlikler
         Route::patch('/restore-event/{id}', [Admin\EventController::class, 'restoreEvent']); // Etkinliği geri yükle
+
+        Route::get('/event-category/all', [Admin\EventCategoryController::class, 'index']); // Etkinlik kategorileri
+        Route::get('/event-category/{id}', [Admin\EventCategoryController::class, 'show']); // Etkinlik kategorisi bilgileri
+        Route::post('/create-event-category', [Admin\EventCategoryController::class, 'store']); // Etkinlik kategorisi oluştur
+        Route::patch('/update-event-category/{id}', [Admin\EventCategoryController::class, 'update']); // Etkinlik kategorisi bilgilerini güncelle
+        Route::delete('/delete-event-category/{id}', [Admin\EventCategoryController::class, 'destroy']); // Etkinlik kategorisini sil
+        Route::get('/deleted-event-category/all', [Admin\EventCategoryController::class, 'deletedEventCategories']); // Silinmiş etkinlik kategorileri
+        Route::patch('/restore-event-category/{id}', [Admin\EventCategoryController::class, 'restore']); // Etkinlik kategorisini geri yükle
+        
+        Route::get('/event-category/search/{name}', [Admin\EventCategoryController::class, 'search']); // Etkinlik kategorisi ara
     });
 });
 

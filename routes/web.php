@@ -33,12 +33,8 @@ Route::get('/react', function (Illuminate\Http\Request $request) {
 })->name('deneme');
 
 
-Route::get('auth/google', [GoogleController::class, 'redirectToGoogle']);
-Route::get('auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
-
-Route::get('auth/github', [GithubController::class, 'redirectToGithub']);
-Route::get('auth/github/callback', [GithubController::class, 'handleGithubCallback']);
-
+Route::get('auth/google', [DBController::class, 'redirectToGoogle']);
+Route::get('auth/google/callback', [DBController::class, 'handleGoogleCallback']);
 
 
 Route::get('clubs', [DBController::class, 'clubs'])->name('clubs.index');

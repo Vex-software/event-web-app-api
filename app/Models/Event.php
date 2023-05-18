@@ -59,14 +59,9 @@ class Event extends Model
         return $this->belongsToMany(User::class);
     }
 
-    // public function eventCategory()
-    // {
-    //     return $this->belongsTo(EventCategory::class);
-    // }
-
     public function category()
     {
-        return $this->belongsTo(EventCategory::class, 'id');
+        return $this->belongsTo(EventCategory::class, 'category_id');
     }
     public function getImageAttribute($value)
     {
