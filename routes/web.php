@@ -2,11 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DBController;
-use App\Http\Controllers\Guest\GithubController;
-use App\Http\Controllers\Guest\GoogleController;
-use App\Models\Role;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Redis;
 
 Route::get('/', function () {
     return "Hi";
@@ -23,7 +19,6 @@ Route::post('login', function (Request $request) {
     echo "<br><pre>";
     print_r(json_decode($request->data, true));
     echo "</pre><br>";
-
 })->name('login.post');
 
 

@@ -6,17 +6,13 @@ use App\Http\Controllers\User;
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\ClubManager;
 use App\Http\Controllers\Guest;
-use App\Http\Controllers\Guest\LoginController;
-use App\Models\Role;
-use Google\Service\Adsense\Row;
-use Predis\Command\Redis\RPUSH;
 
 Route::get('/', function () {
     return response()->json(['message' => 'Buyrun burası API!']);
 });
 
 Route::prefix('auth')->group(function () {
-    Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
+    Route::get('/auth/google/callback', [Guest\LoginController::class, 'handleGoogleCallback']);
 
     Route::post('/register', [Guest\LoginController::class, 'register']);
     Route::post('/login', [Guest\LoginController::class, 'login']);
@@ -75,7 +71,6 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/{id}/users', [User\EventController::class, 'eventUsers']); // Etkinliğe katılan kullanıcılar
         Route::get('/{id}/photo', [User\EventController::class, 'eventPhoto'])->name('getEventPhoto'); // Etkinliğin profil fotoğrafı
         Route::get('/{id}/club', [User\EventController::class, 'eventClub']); // Etkinliğin ait olduğu kulüp
-       
     });
 
     Route::prefix('event-category')->group(function (){
@@ -147,5 +142,3 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/event-category/search/{name}', [Admin\EventCategoryController::class, 'search']); // Etkinlik kategorisi ara
     });
 });
-
-//kategoriler eklenecek..
