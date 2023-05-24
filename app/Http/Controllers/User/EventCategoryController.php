@@ -3,66 +3,54 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use App\Models\EventCategory;
-use Illuminate\Http\Request;
 
 class EventCategoryController extends Controller
 {
     /**
      * Display a listing of the resource.
+     * @return JsonResponse
      */
     public function index()
     {
         $categories = EventCategory::all();
-        return $categories;
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+        return response()->json($categories, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Display the specified resource.
+     * @param int $id
+     * @return JsonResponse
      */
-    public function show(int $id)
+    public function show(int $id): JsonResponse
     {
         $category = EventCategory::find($id);
         if (!$category) {
-            return response()->json(['message' => 'Kategori bulunamadı!'], 404);
+            return response()->json(['message' => 'Kategori bulunamadı!'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
-        return $category;
-    }
-
-    public function eventCategoryEvents(int $id)
-    {
-        $events = EventCategory::find($id)->events()->paginate(10);
-        $events->load('club', 'club.manager', 'club.manager.socialMediaLink', 'category');
-        return $events;
+        return response()->json($category, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
-     * Update the specified resource in storage.
+     * Get spesific category events
+     * @param ind $id
+     * @return JsonResponse
      */
-    public function update(Request $request, string $id)
+    public function eventCategoryEvents(int $id): JsonResponse
     {
-        //
+        $events = EventCategory::find($id)->events()->paginate($this->getPerPage());
+        return response()->json($events, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Search Categories
+     * @param string $q
+     * @return JsonResponse
      */
-    public function destroy(string $id)
+    public function searchEventCategory(string $q): JsonResponse
     {
-        //
+        $categories = EventCategory::where('name', 'like', '%' . $q . '%')->get();
+        return response()->json($categories, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
-
-    public function searchEventCategory(string $search)
-    {
-        $categories = EventCategory::where('name', 'like', '%' . $search . '%')->get();
-        return $categories;
-    } 
 }

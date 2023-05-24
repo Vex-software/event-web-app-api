@@ -31,6 +31,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/joined-clubs', [User\UserController::class, 'joinedClubs']); // oturum açan kullanıcının üye olduğu kulüpler
     Route::get('/joined-events', [User\UserController::class, 'joinedEvents']); // oturum açan kullanıcının dahil olduğu etkinlikler
     Route::get('/my-photo', [User\UserController::class, 'myPhoto']); // oturum açan kullanıcının profil fotoğrafı
+    
 
     Route::prefix('user')->group(function () {
         Route::get('/all', [User\UserController::class, 'index']); // Kullanıcılar

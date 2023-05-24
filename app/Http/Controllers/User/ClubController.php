@@ -15,73 +15,78 @@ class ClubController extends Controller
 {
     /**
      * Display a listing of the resource.
-     * @return Club[]|Collection|Response
+     * @return JsonResponse
+     * @throws \Exception
      */
-    public function index()
+    public function index(): JsonResponse
     {
-        $clubs = Club::paginate(6);
-        $clubs->load('manager', 'users', 'events');
-        return response()->json($clubs, 200);
+        $clubs = Club::paginate($this->getPerPage());
+        return response()->json($clubs, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Display the specified resource.
      * @param int $id
      * @return Response
+     * @throws \Exception
      */
     public function show(int $id): JsonResponse
     {
         $club = Club::findOrFail($id);
-        $club->load('users');
-        $club->load('manager');
-        $club->load('events');
-        return response()->json([
-            'club' => $club,
-        ], 200);
+        $club->load('users', 'manager', 'events');
+        return response()->json($club, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Get users of the club.
      * @param int $clubId
      * @return Response
+     * @throws \Exception
      */
     public function clubUsers(int $clubId): JsonResponse
     {
-        $club = Club::findOrFail($clubId);
-        $clubUsers = $club->users()->paginate(6);
-        return response()->json($clubUsers, 200);
+        $club = Club::find($clubId);
+        if (!$club) {
+            return response()->json(['message' => 'Kulüp bulunamadı.'], JsonResponse::HTTP_NOT_FOUND);
+        }
+        $clubUsers = $club->users();
+        return response()->json($clubUsers, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Get events of the club.
      * @param int $clubId
-     * @return Response
+     * @return JsonResponse
+     * @throws \Exception
      */
     public function clubEvents(int $clubId): JsonResponse
     {
         $club = Club::findOrFail($clubId);
-        $clubEvents = $club->events()->paginate(6);
-        return response()->json($clubEvents, 200);
+        $clubEvents = $club->events()->paginate($this->getPerPage());
+        return response()->json($clubEvents, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
+    /**
+     * Get photo of the club.
+     * @param int $id
+     */
     public function clubPhoto($id)
     {
-        $query = DB::table('clubs')->select('logo')->where('id', $id)->get();
+        $path = DB::table('clubs')->select('logo')->where('id', $id)->get();
 
-        if ($query->count() <= 0) {
-            return abort(404);
+        if (empty($path)) {
+            return response()->json(['error' => 'Fotoğraf bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
-        $path = $query[0]->logo;
-
 
         if (filter_var($path, FILTER_VALIDATE_URL)) {
+            return $path;
             $type = get_headers($path, 1)["Content-Type"];
             return response()->stream(function () use ($path) {
                 echo file_get_contents($path);
             }, 200, ['Content-Type' => $type]);
         } else {
             if (!File::exists($path)) {
-                abort(404);
+                return response()->json(['error' => 'Fotoğraf bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
             }
 
             $type = File::mimeType($path);

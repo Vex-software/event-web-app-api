@@ -3,81 +3,80 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Support\Facades\File;
-use Illuminate\Http\Request;
-use App\Models\Event;
 use Illuminate\Support\Facades\DB;
-use \Illuminate\Database\Eloquent\Collection;
-use Illuminate\Http\Response;
-
+use Illuminate\Http\JsonResponse;
+use App\Models\Event;
 
 class EventController extends Controller
 {
     /**
      * Display a listing of the resource.
      * Not : Event tablosunda hiçbir alan kullanıcıya gizli olmadığı için burada model metodu kullanılmadı.
-     * @return Event[]|Collection|Response
+     * @return JsonResponse
      */
-    public function index()
+    public function index(): JsonResponse
     {
-        $events = Event::paginate(6)->load('category', 'club', 'users')->loadCount('users');
-        return $events;
+        $events = Event::paginate($this->getPerPage());
+        return response()->json($events, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Display the specified resource.
      * Not : Event tablosunda hiçbir alan kullanıcıya gizli olmadığı için burada model metodu kullanılmadı.
      * @param int $id
-     * @return Response
+     * @return JsonResponse
      */
-    public function show($id)
+    public function show($id): JsonResponse
     {
         $event = Event::findOrFail($id)->load('category', 'club', 'users')->loadCount('users');
-        return response()->json([
-            'event' => $event
-        ], 200);
+        return response()->json($event, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
-
 
     /**
      * Get club of the event.
      * @param int $eventId
-     * @return Response
+     * @return JsonResponse
      */
-    public function eventClub($eventId)
+    public function eventClub($eventId): JsonResponse
     {
         $club = Event::find($eventId)->club()->first();
-        return response()->json($club, 200);
+        return response()->json($club, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-
-
-    public function eventUsers($eventId)
+    /**
+     * Get joined users of the event.
+     * @param int $eventId
+     * @return JsonResponse
+     */
+    public function eventUsers($eventId): JsonResponse
     {
-        $users = Event::find($eventId)->users()->paginate(6);
-        return response()->json($users, 200);
+        $users = Event::find($eventId)->users()->paginate($this->getPerPage());
+        return response()->json($users, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-
+    /**
+     * Get event photo.
+     * @param int $eventId
+     * @return JsonResponse
+     */
     public function eventPhoto($id)
     {
-        $query = DB::table('events')->select('image')->where('id', $id)->get();
+        $path = DB::table('events')->select('image')->where('id', $id)->get();
 
-        if ($query->count() <= 0) {
-            return abort(404);
+        if (empty($path)) {
+            return response()->json(['error' => 'Fotoğraf bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
-        $path = $query[0]->image;
-
         if (filter_var($path, FILTER_VALIDATE_URL)) {
+            return $path;
             $type = get_headers($path, 1)["Content-Type"];
             return response()->stream(function () use ($path) {
                 echo file_get_contents($path);
             }, 200, ['Content-Type' => $type]);
         } else {
             if (!File::exists($path)) {
-                abort(404);
+                return response()->json(['error' => 'Fotoğraf bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
             }
 
             $type = File::mimeType($path);
@@ -85,10 +84,10 @@ class EventController extends Controller
         }
     }
 
+    // Henüz kullanılmıyor.
     // public function eventComments($eventId)
     // {
     //     $comments = Event::find($eventId)->comments()->paginate(6);
     //     return response()->json($comments, 200);
     // }
-
 }
