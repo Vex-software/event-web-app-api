@@ -2,105 +2,90 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
-use App\Models\User;
-use Illuminate\Validation\Rule;
-use App\Models\Role;
-use Illuminate\Support\Facades\Validator;
-use App\Models\Club;
-use Illuminate\Contracts\Cache\Store;
-use Illuminate\Http\JsonResponse;
+use App\Http\Requests\Admin\AdminUpdateClubRequest;
+use App\Http\Requests\Admin\AdminCreateClubRequest;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Str;
+use App\Models\Club;
+use Carbon\Carbon;
 
 class ClubController extends Controller
 {
-    protected $clubHiddens = [
-        'created_at',
-        'updated_at',
-        'deleted_at',
-        'email',
-        'phone_number',
-        'pivot',
-    ];
-
-    public function clubs()
+    /**
+     * @return JsonResponse
+     * @throws \Exception
+     */
+    public function index(): JsonResponse
     {
-        $clubs = Club::paginate(10);
+        $clubs = Club::paginate($this->getPerPage());
         $clubs->makeVisible($this->clubHiddens);
-        return response()->json($clubs, 200);
+        return response()->json($clubs, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function club($id)
+    /**
+     * Get club by id
+     * @param $id
+     * @return JsonResponse
+     * @throws \Exception
+     */
+    public function show($id): JsonResponse
     {
         $club = Club::find($id);
-        if (!$club) {
-            return response()->json(['error' => 'Kulüp bulunamadı.'], 404);
-        }
         $club->makeVisible($this->clubHiddens);
-        return response()->json($club, 200);
+        $club->load('users', 'events');
+        if (!$club) {
+            return response()->json(['error' => 'Kulüp bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
+        }
+        return response()->json($club, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function createClub(Request $request): JsonResponse
+    /**
+     * @param AdminCreateClubRequest $request
+     * @return JsonResponse
+     */
+    public function createClub(AdminCreateClubRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string',
-            'title' => 'required|string',
-            'description' => 'required',
-            'logo' => 'nullable',
-            'email' => 'required|email',
-            'phone_number' => 'required',
-            'website' => 'nullable',
-            'founded_year' => 'nullable|date',
-            'manager_id' => 'required|integer',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 422);
-        }
-
         $club = new Club();
         $club->name = $request->name;
-        $club->title = $request->title;
-        $club->description = $request->description;
-        if ($request->logo) {
-            $club->logo = $request->logo;
-        }
+        $club->title = $request->title ?? "";
+        $club->description = $request->description ?? "";
         $club->email = $request->email;
-        $club->phone_number = $request->phone_number;
-        if ($request->website) {
-            $club->website = $request->website;
-        }
-        if ($request->founded_year) {
-            $club->founded_year = $request->founded_year;
-        }
+        $club->phone_number = $request->phone_number ?? null;
+        $club->website = $request->website ?? "";
+        $club->founded_year = $request->founded_year ?? Carbon::now();
         $club->manager_id = $request->manager_id;
         $club->save();
 
-        return response()->json(['message' => 'Kulüp başarıyla oluşturuldu.'], 200);
+        $id = $club->id;
+
+        if ($request->hasFile('logo')) {
+            $logo = $request->file('logo');
+            if (Storage::exists($club->logo)) {
+                Storage::delete($club->logo);
+            }
+            $logoName = time() . '.' . $logo->getClientOriginalExtension();
+            $slugName = Str::slug($club->name);
+            $logo->storeAs("public/club-logos/$id-$slugName/", $logoName);
+
+            $club->logo = "club-logos/$id-$slugName/" . $logoName;
+            $club->save();
+        }
+
+        return response()->json(['message' => 'Kulüp başarıyla oluşturuldu.'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function updateClub(Request $request, $id): JsonResponse
+    /**
+     * @param AdminUpdateClubRequest $request
+     * @param $id
+     * @return JsonResponse
+     */
+    public function updateClub(AdminUpdateClubRequest $request, $id): JsonResponse
     {
-        $club = Club::findOrFail($id);
-
-        $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:255', 'unique:clubs,name,' . $club->id],
-            'title' => 'required|string',
-            'description' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:clubs,email,' . $club->id],
-            'phone_number' => ['required', 'string', 'max:255', 'unique:clubs,phone_number,' . $club->id],
-            'address' => ['required', 'string', 'max:255', 'unique:clubs,address,' . $club->id],
-            'website' => 'nullable',
-            'founded_year' => 'nullable|date',
-            'manager_id' => 'required|integer',
-            'city_id' => ['required', 'integer', 'exists:cities,id'],
-            'logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 422);
+        $club = Club::find($id);
+        if (!$club) {
+            return response()->json(['error' => 'Kulüp bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
         if ($request->hasFile('logo')) {
@@ -109,125 +94,98 @@ class ClubController extends Controller
                 Storage::delete($club->logo);
             }
             $logoName = time() . '.' . $logo->getClientOriginalExtension();
-            $logo->storeAs('public/logos', $logoName);
-            $club->logo = $logoName;
+            $slugName = Str::slug($club->name);
+            $logo->storeAs("public/club-logos/$id-$slugName/", $logoName);
+
+            $club->logo = "club-logos/$id-$slugName/" . $logoName;
         }
 
         $club->name = $request->name;
-        $club->title = $request->title;
-        $club->description = $request->description;
-        // if ($request->logo) {
-        //     $club->logo = $request->logo;
-        // }
         $club->email = $request->email;
-        $club->phone_number = $request->phone_number;
-        if ($request->website) {
-            $club->website = $request->website;
-        }
-        $club->address = $request->address;
-        if ($request->founded_year) {
-            $club->founded_year = $request->founded_year;
-        }
-        $club->manager_id = $request->manager_id;
         $club->city_id = $request->city_id;
-        if ($request->logo != null) {
-            $club->logo = $request->logo;
-        }
+        $club->manager_id = $request->manager_id;
+
+        $club->title = $request->title ?? $club->title;
+        $club->description = $request->description ?? $club->description;
+        $club->phone_number = $request->phone_number ?? $club->phone_number;
+        $club->website = $request->website ?? $club->website;
+        $club->address = $request->address ?? $club->address;
+        $club->founded_year = $request->founded_year ?? $club->founded_year;
         $club->save();
-
-
-
-        return response()->json(['message' => 'Kulüp başarıyla güncellendi.'], 200);
+        return response()->json(['message' => 'Kulüp başarıyla güncellendi.'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-
+    /**
+     * @param $id
+     * @return JsonResponse
+     */
     public function deleteClub($id): JsonResponse
     {
-        $club = Club::withTrashed()->findOrFail($id);
+        $club = Club::find($id);
         if (!$club) {
-            return response()->json(['error' => 'Kulüp bulunamadı.'], 400);
+            return response()->json(['error' => 'Kulüp bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
         if ($club->trashed()) {
-            return response()->json(['error' => 'Kulüp zaten silinmiş.'], 400);
+            return response()->json(['error' => 'Kulüp zaten silinmiş.'], JsonResponse::HTTP_BAD_REQUEST, [], JSON_UNESCAPED_UNICODE);
         }
 
         $club->delete();
-        return response()->json(['message' => 'Kulüp başarıyla silindi.'], 200);
+        return response()->json(['message' => 'Kulüp başarıyla silindi.'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
+    /**
+     * @param $id
+     * @return JsonResponse
+     */
     public function restoreClub($id): JsonResponse
     {
-        $club = Club::withTrashed()->findOrFail($id);
-
+        $club = Club::withTrashed()->find($id);
+        if (!$club) {
+            return response()->json(['error' => 'Kulüp bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
+        }
         if (!$club->trashed()) {
-            return response()->json(['error' => 'Kulüp zaten aktif.'], 400);
+            return response()->json(['error' => 'Kulüp zaten aktif.'], JsonResponse::HTTP_BAD_REQUEST, [], JSON_UNESCAPED_UNICODE);
         }
         $club->restore();
-        return response()->json(['message' => 'Kulüp başarıyla geri yüklendi.'], 200);
-    }
-
-    /**
-     * Display a listing of the resource.
-     * @return Club[]|Collection|Response
-     */
-    public function index(): Collection
-    {
-        $clubs = Club::paginate(6);
-        return $clubs;
-    }
-
-    /**
-     * Display the specified resource.
-     * @param int $id
-     * @return Response
-     */
-    public function show(int $id): JsonResponse
-    {
-        $club = Club::findOrFail($id);
-        $clubUsers = $club->users()->paginate(6);
-        return response()->json([
-            'club' => $club,
-            'clubUsers' => $clubUsers
-        ], 200);
+        return response()->json(['message' => 'Kulüp başarıyla geri yüklendi.'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Get users of the club.
      * @param int $clubId
-     * @return Response
+     * @return JsonResponse
      */
     public function clubUsers(int $clubId): JsonResponse
     {
-        $users = Club::find($clubId)->users()->paginate(6);
-        return response()->json($users, 200);
+        $users = Club::find($clubId)->users()->paginate($this->getPerPage());
+        return response()->json($users, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Get events of the club.
      * @param int $clubId
-     * @return Response
+     * @return JsonResponse
      */
     public function clubEvents(int $clubId): JsonResponse
     {
-        $events = Club::find($clubId)->events()->paginate(6);
-        return response()->json($events, 200);
+        $events = Club::find($clubId)->events()->paginate($this->getPerPage());
+        return response()->json($events, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function deletedClubs(): JsonResponse
     {
-        $clubs = Club::onlyTrashed()->paginate(6);
-        $clubs->makeVisible($this->clubHiddens); // makeVisible() methodu ile gizli alanları görünür hale getirdim. Editör hata verebilir
-        return response()->json($clubs, 200);
+        $clubs = Club::onlyTrashed()->paginate($this->getPerPage());
+        return response()->json($clubs, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function deletedClub($id): JsonResponse
     {
         $club = Club::onlyTrashed()->find($id);
         if (!$club) {
-            return response()->json(['error' => 'Kulüp bulunamadı.'], 400);
+            return response()->json(['error' => 'Kulüp bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
         $club->makeVisible($this->clubHiddens);
-        return response()->json($club, 200);
+        return response()->json($club, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 }

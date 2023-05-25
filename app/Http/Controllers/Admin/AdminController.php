@@ -3,49 +3,25 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Validator;
-use App\Models\Club;
-use App\Models\Event;
 use App\Models\Role;
-use Illuminate\Contracts\Cache\Store;
-use Illuminate\Support\Facades\Storage;
+use App\Models\User;
 
 class AdminController extends Controller
 {
-    // public function __construct()
-    // {
-    //     $this->middleware('auth:admin');
-    // }
-
-  
-
-    public function updateEvent(Request $request, $id)
+    /**
+     * @return JsonResponse
+     */
+    public function users(): JsonResponse
     {
-        $event = Event::findOrFail($id);
+        $users = User::paginate($this->getPerPage());
+        return response()->json($users, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-
-    public function deleteClub($id)
+    public function admins(): JsonResponse
     {
-        $club = Club::findOrFail($id);
-        $club->delete();
-        return response()->json(['message' => 'Kulüp başarıyla silindi.'], 200);
-    }
-
-    public function deleteEvent($id)
-    {
-        $event = Event::findOrFail($id);
-        $event->delete();
-        return response()->json(['message' => 'Etkinlik başarıyla silindi.'], 200);
-    }
-
-    public function deleteUser($id)
-    {
-        $user = User::findOrFail($id);
-        $user->delete();
-        return response()->json(['message' => 'Kullanıcı başarıyla silindi.'], 200);
+        $adminRole = Role::where('name', 'admin')->first();
+        $admins = $adminRole->users()->paginate($this->getPerPage());
+        return response()->json($admins, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 }

@@ -27,7 +27,7 @@ class UserController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function index(Request $request) : JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $users = User::paginate($this->getPerPage());
         return response()->json($users, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
@@ -219,15 +219,13 @@ class UserController extends Controller
             return response()->json(['error' => 'Kullanıcı bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
-        $phoneNumber = preg_replace('/[^0-9]/', '', $request->input('phone_number'));
-        $length = strlen($phoneNumber);
-        if ($length == 10) { // Uzunluğu 10 ise başına +90 ekle
-            $phoneNumber = '+90' . $phoneNumber;
-        } elseif ($length == 11) { // Uzunluğu 11 ise başındaki 0'ı kaldırın ve başına +90 ekle
-            $phoneNumber = '+90' . substr($phoneNumber, 1);
+        $phoneNumber = preg_replace('/[^0-9]/', '', $this->input('phone_number'));
+
+        if (Str::startsWith($phoneNumber, "90")) {
+            $phoneNumber = "+90" . substr($phoneNumber, -10);
         }
 
-        $phoneNumber = preg_replace('/(\d{2})(\d{3})(\d{3})(\d{2})(\d{2})/', '+$1-$2-$3-$4-$5', $phoneNumber);
+        $phoneNumber = preg_replace('/(\d{2})(\d{3})(\d{3})(\d{2})(\d{2})/', '$1-$2-$3-$4-$5', $phoneNumber);
 
         $user->name = $request->input('name');
         $user->surname = $request->input('surname');

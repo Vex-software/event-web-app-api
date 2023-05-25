@@ -3,36 +3,31 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Role;
-use Illuminate\Http\JsonResponse;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 
 class ClubManagerController extends Controller
 {
-    
-    protected $userHiddens = ['email', 'email_verified_at', 'created_at', 'updated_at', 'role_id', 'deleted_at', 'phone_number', 'address', 'city_id', 'google_id', 'github_id', 'pivot', 'role_id'];
-
-    public function clubManagers()
+    public function index(): JsonResponse
     {
-        $role_id = Role::where('slug', 'club_manager')->first()->id;
-        $clubManagers = User::where('role_id', $role_id)->paginate(10);
+        $CMrole = Role::where('slug', 'club_manager')->first();
+        $clubManagers = $CMrole->users()->paginate($this->getPerPage());
 
         $clubManagers->makeVisible($this->userHiddens);
-        return response()->json($clubManagers, 200);
+        return response()->json($clubManagers, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function clubManager($id)
+    public function show($id): JsonResponse
     {
         $role_id = Role::where('slug', 'club_manager')->first()->id;
         $clubManager = User::where('role_id', $role_id)->find($id);
 
         if (!$clubManager) {
-            return response()->json(['error' => 'Kulüp yöneticisi bulunamadı.'], 404);
+            return response()->json(['error' => 'Kulüp yöneticisi bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
         $clubManager->makeVisible($this->userHiddens);
-
-        return response()->json($clubManager, 200);
+        return response()->json($clubManager, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 }

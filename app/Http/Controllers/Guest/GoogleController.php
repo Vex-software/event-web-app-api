@@ -4,34 +4,31 @@ namespace App\Http\Controllers\Guest;
 
 use Laravel\Socialite\Facades\Socialite;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
-use \Symfony\Component\HttpFoundation\RedirectResponse;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Hash;
 
 class GoogleController extends Controller
 {
-    
-    public function handleGoogleCallback()
+
+    /**
+     * Redirect the user to the Google authentication page.
+     * @return Jsonresponse
+     */
+    public function handleGoogleCallback(): JsonResponse
     {
         try {
             $user = Socialite::driver('google')->user();
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            return response()->json(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED, [], JSON_UNESCAPED_UNICODE);
         }
 
-        // Find or create the user in your app's database
         $authUser = $this->findOrCreateUser($user);
-
-        // Generate a personal access token using Laravel Passport
         $passportToken = $authUser->createToken('authToken')->accessToken;
-
         $authUser->token = $passportToken;
 
         return response()->json(['token' => $passportToken, 'user' => $authUser]);
     }
-
     /**
      * If a user has registered before using social auth, return the user
      * else, create a new user object.
@@ -43,8 +40,6 @@ class GoogleController extends Controller
         $authUser = User::where('email', $googleUser->email)->first();
 
         if ($authUser) {
-            // Collect the current user attributes
-
             $attributes = [
                 'name' => $authUser->name,
                 'surname' => $authUser->surname,
@@ -54,7 +49,6 @@ class GoogleController extends Controller
                 'password' => $authUser->password,
             ];
 
-            // Merge the existing attributes with any missing ones from the Google user
             $newAttributes = array_merge($attributes, array_filter([
                 'name' => $googleUser->user['given_name'],
                 'surname' => $googleUser->user['family_name'],
@@ -63,21 +57,20 @@ class GoogleController extends Controller
                 'google_id' => $googleUser->id,
             ]));
 
-            // Update the user with the merged attributes
             $authUser->update($newAttributes);
             $authUser->save();
 
             return $authUser;
         }
 
-        // If no user found, create a new user with the Google user's details
+        // Eger kullanici yoksa yeni kullanici olustur
         return User::create([
             'name' => $googleUser->user['given_name'],
             'surname' => $googleUser->user['family_name'],
             'profile_photo_path' => $googleUser->user['picture'],
             'email' => $googleUser->email,
             'google_id' => $googleUser->id,
-            'password' => bcrypt('123456'),  // simdilik sabit bir şifre atadım
+            'password' => bcrypt(strval(mt_rand(10000000, 99999999))),
         ]);
     }
 }

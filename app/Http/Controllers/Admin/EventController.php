@@ -2,74 +2,35 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Requests\Admin\AdminCreateEventRequest;
+use App\Http\Requests\Admin\AdminUpdateEventRequest;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\User;
-use Illuminate\Validation\Rule;
-use App\Models\Role;
-use Illuminate\Support\Facades\Validator;
-use App\Models\Club;
 use Illuminate\Http\JsonResponse;
 use App\Models\Event;
+use App\Models\Club;
+use App\Models\User;
 
 class EventController extends Controller
 {
-
-    protected $eventHiddens = [
-        'created_at',
-        'updated_at',
-        'deleted_at',
-        'pivot',
-    ];
-
-
-    //    /**
-    //  * Get all events.
-    //  * @return Response
-    //  */
-    // public function events()
-    // {
-    //     $events = Event::withTrashed()->paginate(10);
-    //     return response()->json($events, 200);
-    // }
-
-
-    public function events()
+    public function index(): JsonResponse
     {
-        $events = Event::paginate(10);
+        $events = Event::paginate($this->getPerPage());
         $events->makeVisible($this->eventHiddens);
-        return response()->json($events, 200);
+        return response()->json($events, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function event($id)
+    public function show($id): JsonResponse
     {
         $event = Event::find($id);
         if (!$event) {
-            return response()->json(['error' => 'Etkinlik bulunamadı.'], 404);
+            return response()->json(['error' => 'Etkinlik bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
         $event->makeVisible($this->eventHiddens);
-        return response()->json($event, 200);
+        return response()->json($event, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function createEvent(Request $request): JsonResponse
+    public function createEvent(AdminCreateEventRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string',
-            'title' => 'required|string',
-            'description' => 'required',
-            'start_time' => 'required|date',
-            'end_time' => 'required|date',
-            'club_id' => 'required|integer',
-            'category_id' => 'required|integer',
-            'location' => 'required|string',
-            'image' => 'nullable',
-            'quota' => 'nullable|integer',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 422);
-        }
-
         $event = Event::create([
             'name' => $request->name,
             'title' => $request->title,
@@ -82,112 +43,97 @@ class EventController extends Controller
             'club_id' => $request->club_id,
         ]);
         if ($event) {
-            return response()->json(['message' => 'Etkinlik başarıyla oluşturuldu.'], 200);
+            return response()->json(['message' => 'Etkinlik başarıyla oluşturuldu.'], JsonResponse::HTTP_CREATED, [], JSON_UNESCAPED_UNICODE);
         } else {
-            return response()->json(['message' => 'Etkinlik oluşturulamadı.'], 400);
+            return response()->json(['message' => 'Etkinlik oluşturulamadı.'], JsonResponse::HTTP_INTERNAL_SERVER_ERROR, [], JSON_UNESCAPED_UNICODE);
         }
     }
 
-    public function updateEvent(Request $request, $id): JsonResponse
+    public function updateEvent(AdminUpdateEventRequest $request, $id): JsonResponse
     {
-        $event = Event::findOrFail($id);
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string',
-            'title' => 'required|string',
-            'description' => 'required',
-            'start_time' => 'required|date',
-            'end_time' => 'nullable|date',
-            'club_id' => 'required|integer',
-            'category_id' => 'required|integer',
-            'location' => 'nullable|string',
-            'image' => 'nullable',
-            'quota' => 'nullable|integer',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 422);
+        $event = Event::find($id);
+        if (!$event) {
+            return response()->json(['error' => 'Etkinlik bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
-
         $event->name = $request->name;
         $event->title = $request->title;
         $event->description = $request->description;
         $event->start_time = $request->start_time;
         $event->end_time = $request->end_time;
-        if ($request->location) {
-            $event->location = $request->location;
-        }
-        if ($request->image) {
-            $event->image = $request->image;
-        }
+        $event->location = $request->location ?? $event->location;
+        $event->image = $request->image ?? $event->image;
         $event->category_id = $request->category_id;
         $event->club_id = $request->club_id;
-        if ($request->quota) {
-            $event->quota = $request->quota;
-        }
+        $event->quota = $request->quota ?? $event->quota;
         $event->save();
 
-        return response()->json(['message' => 'Etkinlik başarıyla güncellendi.'], 200);
+        return response()->json(['message' => 'Etkinlik başarıyla güncellendi.'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function deleteEvent($id): JsonResponse
     {
-        $event = Event::withTrashed()->findOrFail($id);
+        $event = Event::withTrashed()->find($id);
+        if (!$event) {
+            return response()->json(['error' => 'Etkinlik bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
+        }
 
         if ($event->trashed()) {
-            return response()->json(['error' => 'Etkinlik zaten silinmiş.'], 400);
+            return response()->json(['error' => 'Etkinlik zaten silinmiş.'], JsonResponse::HTTP_BAD_REQUEST, [], JSON_UNESCAPED_UNICODE);
         }
         $event->delete();
-        return response()->json(['message' => 'Etkinlik başarıyla silindi.'], 200);
+        return response()->json(['message' => 'Etkinlik başarıyla silindi.'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function restoreEvent($id): JsonResponse
     {
         $event = Event::withTrashed()->find($id);
         if (!$event) {
-            return response()->json(['error' => 'Etkinlik bulunamadı'], 404);
+            return response()->json(['error' => 'Etkinlik bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
-
-        if ($event->deleted_at === null) {
-            return response()->json(['error' => 'Etkinlik zaten aktif'], 400);
+        if ($event->trashed()) {
+            $event->restore();
+            return response()->json(['message' => 'Etkinlik başarıyla geri yüklendi'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
+        } else {
+            return response()->json(['error' => 'Etkinlik zaten aktif'], JsonResponse::HTTP_BAD_REQUEST, [], JSON_UNESCAPED_UNICODE);
         }
-
-        $event->restore();
-        return response()->json(['message' => 'Etkinlik başarıyla geri yüklendi'], 200);
     }
-
 
     /**
      * Get joined users of the event.
      * @param int $eventId
-     * @return Response
+     * @return JsonResponse
      */
-    public function eventUsers($eventId)
+    public function eventUsers($eventId): JsonResponse
     {
-        $users = Event::find($eventId)->users()->paginate(6);
-        return response()->json($users, 200);
+        $users = Event::find($eventId)->users()->paginate($this->getPerPage());
+        return response()->json($users, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Get club of the event.
      * @param int $eventId
-     * @return Response
+     * @return JsonResponse
      */
     public function eventClub($eventId)
     {
         $club = Event::find($eventId)->club()->get();
-        return response()->json($club, 200);
+        return response()->json($club, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Get category of the event.
      * @param int $eventId
-     * @return Response
+     * @return JsonResponse
      */
-    public function eventCategory($eventId)
+    public function eventCategory($eventId): JsonResponse
     {
-        $category = Event::find($eventId)->category()->get();
-        return response()->json($category, 200);
+        $event = Event::find($eventId);
+        if (!$event) {
+            return response()->json(['error' => 'Etkinlik bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
+        }
+        $category = $event->category()->get();
+
+        return response()->json($category, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
 
@@ -195,59 +141,54 @@ class EventController extends Controller
     /**
      * Get all events of the club.
      * @param int $clubId
-     * @return Response
+     * @return JsonResponse
      */
-    public function clubEvents($clubId)
+    public function clubEvents($clubId): JsonResponse
     {
-        $events = Club::find($clubId)->events()->paginate(6);
-        return response()->json($events, 200);
+        $club = Club::find($clubId);
+        if (!$club) {
+            return response()->json(['error' => 'Kulüp bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
+        }
+        $events = $club->events()->paginate($this->getPerPage());
+        return response()->json($events, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Get all events of the category.
      * @param int $categoryId
-     * @return Response
+     * @return JsonResponse
      */
-    public function categoryEvents($categoryId)
+    public function categoryEvents($categoryId): JsonResponse
     {
-        $events = Event::where('category_id', $categoryId)->paginate(6);
-        return response()->json($events, 200);
+        $events = Event::where('category_id', $categoryId)->paginate($this->getPerPage());
+        return response()->json($events, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Get all events of the user.
      * @param int $userId
-     * @return Response
+     * @return JsonResponse
      */
     public function userEvents($userId)
     {
-        $events = User::find($userId)->events()->paginate(6);
-        return response()->json($events, 200);
+        $events = User::find($userId)->events()->paginate($this->getPerPage());
+        return response()->json($events, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
 
     public function deletedEvents()
     {
-        $events = Event::onlyTrashed()->paginate(6);
-        $events->makeVisible($this->eventHiddens); // makeVisible() methodu ile gizli alanları görünür hale getirdim. Editör hata verebilir
-        return response()->json($events, 200);
+        $events = Event::onlyTrashed()->paginate($this->getPerPage());
+        return response()->json($events, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function deletedEvent($id)
     {
-        $event = Event::onlyTrashed()->findOrFail($id);
+        $event = Event::onlyTrashed()->find($id);
+        if (!$event) {
+            return response()->json(['error' => 'Etkinlik bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
+        }
         $event->makeVisible($this->eventHiddens);
-        return response()->json($event, 200);
+        return response()->json($event, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
-
-    // /**
-    //  * Get all events of the user.
-    //  * @param int $userId
-    //  * @return Response
-    //  */
-    // public function userJoinedEvents($userId)
-    // {
-    //     $events = User::find($userId)->joinedEvents()->paginate(6);
-    //     return response()->json($events, 200);
-    // }
 }

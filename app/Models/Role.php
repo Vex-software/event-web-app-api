@@ -24,6 +24,13 @@ class Role extends Model
         return $this->hasMany(User::class);
     }
 
+
+
+
+
+
+
+
     // public function users($slug) en son
     // {
     //     return User::whereHas('roles', function ($query) use ($slug) {

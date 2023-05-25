@@ -31,7 +31,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/joined-clubs', [User\UserController::class, 'joinedClubs']); // oturum açan kullanıcının üye olduğu kulüpler
     Route::get('/joined-events', [User\UserController::class, 'joinedEvents']); // oturum açan kullanıcının dahil olduğu etkinlikler
     Route::get('/my-photo', [User\UserController::class, 'myPhoto']); // oturum açan kullanıcının profil fotoğrafı
-    
+
 
     Route::prefix('user')->group(function () {
         Route::get('/all', [User\UserController::class, 'index']); // Kullanıcılar
@@ -74,7 +74,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/{id}/club', [User\EventController::class, 'eventClub']); // Etkinliğin ait olduğu kulüp
     });
 
-    Route::prefix('event-category')->group(function (){
+    Route::prefix('event-category')->group(function () {
         Route::get('/all', [User\EventCategoryController::class, 'index']);
         Route::get('/{id}', [User\EventCategoryController::class, 'show']);
         Route::get('/{id}/event/all', [User\EventCategoryController::class, 'eventCategoryEvents']);
@@ -84,7 +84,7 @@ Route::middleware('auth:api')->group(function () {
 
 
     // Middleware'larda kullanıcının bir kulüp yöneticisi olup olmadığını ve yöneticisi olduğu kulübün varlığını kontrol ediyoruz.
-    Route::prefix('club-manager')->middleware('checkrole:club_manager', 'check.club.ownership')->group(function () {
+    Route::prefix('club-manager')->middleware(['checkrole:club_manager', 'check.club.ownership'])->group(function () {
         Route::get('/my-club', [ClubManager\ClubManagerController::class, 'myClub']); // Kulübüm
         Route::get('/my-club/user/all', [ClubManager\ClubManagerController::class, 'getClubMembers']); // Kulübüme üye olan kullanıcılar
         Route::get('/my-club/event/all', [ClubManager\ClubManagerController::class, 'myClubEvents']); // Kulübümün etkinlikleri
@@ -99,17 +99,17 @@ Route::middleware('auth:api')->group(function () {
 
 
     Route::prefix('admin')->middleware('checkrole:admin')->group(function () {
-        Route::get('/user/all', [Admin\UserController::class, 'users']); // Kullanıcılar
-        Route::get('/user/{id}', [Admin\UserController::class, 'user']); // Kullanıcı bilgileri
+        Route::get('/user/all', [Admin\UserController::class, 'index']); // Kullanıcılar
+        Route::get('/user/{id}', [Admin\UserController::class, 'show']); // Kullanıcı bilgileri
 
-        Route::get('/club/all', [Admin\ClubController::class, 'clubs']); // Kulüpler
-        Route::get('/club/{id}', [Admin\ClubController::class, 'club']); // Kulüp bilgileri
+        Route::get('/club/all', [Admin\ClubController::class, 'index']); // Kulüpler
+        Route::get('/club/{id}', [Admin\ClubController::class, 'show']); // Kulüp bilgileri
 
-        Route::get('/club-manager/all', [Admin\ClubManagerController::class, 'clubManagers']); // Kulüp yöneticileri
-        Route::get('/club-manager/{id}', [Admin\ClubManagerController::class, 'clubManager']); // Kulüp yöneticisi bilgileri
+        Route::get('/club-manager/all', [Admin\ClubManagerController::class, 'index']); // Kulüp yöneticileri
+        Route::get('/club-manager/{id}', [Admin\ClubManagerController::class, 'show']); // Kulüp yöneticisi bilgileri
 
-        Route::get('/event/all', [Admin\EventController::class, 'events']); // Etkinlikler
-        Route::get('/event/{id}', [Admin\EventController::class, 'event']); // Etkinlik bilgileri
+        Route::get('/event/all', [Admin\EventController::class, 'index']); // Etkinlikler
+        Route::get('/event/{id}', [Admin\EventController::class, 'show']); // Etkinlik bilgileri
 
         Route::post('/create-user', [Admin\UserController::class, 'createUser']); // Kullanıcı oluştur
         Route::patch('/update-user/{id}', [Admin\UserController::class, 'updateUser']); // Kullanıcı bilgilerini güncelle
@@ -139,7 +139,7 @@ Route::middleware('auth:api')->group(function () {
         Route::delete('/delete-event-category/{id}', [Admin\EventCategoryController::class, 'destroy']); // Etkinlik kategorisini sil
         Route::get('/deleted-event-category/all', [Admin\EventCategoryController::class, 'deletedEventCategories']); // Silinmiş etkinlik kategorileri
         Route::patch('/restore-event-category/{id}', [Admin\EventCategoryController::class, 'restore']); // Etkinlik kategorisini geri yükle
-        
+
         Route::get('/event-category/search/{name}', [Admin\EventCategoryController::class, 'search']); // Etkinlik kategorisi ara
     });
 });

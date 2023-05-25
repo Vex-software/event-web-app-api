@@ -2,85 +2,79 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Requests\Admin\AdminUpdateEventCategoryRequest;
+use App\Http\Requests\Admin\AdminAddEventCategoryRequest;
 use App\Http\Controllers\Controller;
-use App\Models\Event;
+use Illuminate\Http\JsonResponse;
 use App\Models\EventCategory;
-use Illuminate\Http\Request;
 
 class EventCategoryController extends Controller
 {
-    public function index()
+    public function index(): JsonResponse
     {
         $categories = EventCategory::all();
-
-        return response()->json($categories, 200);
+        return response()->json($categories, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
-    
 
-    public function store(Request $request)
+
+    public function store(AdminAddEventCategoryRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|unique:event_categories,name',
-        ]);
+        $category = new EventCategory();
+        $category->name = $request->name;
+        $category->save();
 
-        $category = EventCategory::create($request->all());
-        return response()->json($category, 201);
+        return response()->json($category, JsonResponse::HTTP_CREATED, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function show(int $id)
     {
         $category = EventCategory::find($id);
         if (!$category) {
-            return response()->json(['message' => 'Kategori bulunamadı!'], 404);
+            return response()->json(['message' => 'Kategori bulunamadı!'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
-        return $category;
+        return response()->json($category, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function update(Request $request, int $id)
+    public function update(AdminUpdateEventCategoryRequest $request, int $id)
     {
-        $request->validate([
-            'name' => 'required|string|unique:event_categories,name,' . $id,
-        ]);
-
         $category = EventCategory::find($id);
         if (!$category) {
-            return response()->json(['message' => 'Kategori bulunamadı!'], 404);
+            return response()->json(['message' => 'Kategori bulunamadı!'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
-        $category->update($request->all());
-        return response()->json($category, 200);
+        $category->name = $request->name;
+        $category->save();
+        return response()->json($category, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function destroy(int $id)
     {
         $category = EventCategory::find($id);
         if (!$category) {
-            return response()->json(['message' => 'Kategori bulunamadı!'], 404);
+            return response()->json(['message' => 'Kategori bulunamadı!'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
         $category->delete();
-        return response()->json(['message' => 'Kategori silindi!'], 200);
+        return response()->json(['message' => 'Kategori silindi!'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function restore(int $id)
     {
         $category = EventCategory::onlyTrashed()->find($id);
         if (!$category) {
-            return response()->json(['message' => 'Kategori bulunamadı!'], 404);
+            return response()->json(['message' => 'Kategori bulunamadı!'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
         $category->restore();
-        return response()->json(['message' => 'Kategori geri yüklendi!'], 200);
+        return response()->json(['message' => 'Kategori geri yüklendi!'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
-
 
     public function deletedEventCategories()
     {
-        $categories = EventCategory::onlyTrashed()->paginate(10);
+        $categories = EventCategory::onlyTrashed()->paginate($this->getPerPage());
         return $categories;
     }
-
 
     public function search(string $search)
     {
         $events = EventCategory::where('name', 'LIKE', '%' . $search . '%')->get();
-        return $events;
+        return response()->json($events, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 }
