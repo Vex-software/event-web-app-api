@@ -31,7 +31,7 @@ class RegisterRequest extends FormRequest
             'address' => 'nullable|max:255',
             'city_id' => 'nullable|exists:cities,id|integer|min:1|max:81',
             'password' => 'required|confirmed|min:8|max:255|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/|string',
-            'photo' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ];
 
         if ($this->filled('phone_number')) {
