@@ -34,7 +34,7 @@ class EventCategoryFactory extends Factory
             'Çocuklar',
             'Sağlık',
             'Ev ve Bahçe',
-            'Diğer'
+            'Diğer',
         ];
 
         $name = $this->faker->unique()->randomElement($categoryNames);

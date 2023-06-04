@@ -2,18 +2,15 @@
 
 namespace App\Http\Controllers\Guest;
 
-use Laravel\Socialite\Facades\Socialite;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Hash;
+use Laravel\Socialite\Facades\Socialite;
 
 class GoogleController extends Controller
 {
-
     /**
      * Redirect the user to the Google authentication page.
-     * @return Jsonresponse
      */
     public function handleGoogleCallback(): JsonResponse
     {
@@ -29,11 +26,10 @@ class GoogleController extends Controller
 
         return response()->json(['token' => $passportToken, 'user' => $authUser]);
     }
+
     /**
      * If a user has registered before using social auth, return the user
      * else, create a new user object.
-     * @param $googleUser
-     * @return User
      */
     private function findOrCreateUser($googleUser): User
     {

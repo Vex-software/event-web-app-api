@@ -8,45 +8,26 @@ use Illuminate\Routing\Controller as BaseController;
 
 class Controller extends BaseController
 {
-    use AuthorizesRequests, ValidatesRequests;
+    use AuthorizesRequests;
+    use ValidatesRequests;
 
     private $per_page = 10;
 
-    protected $userHiddens = [
-        'email',
-        'email_verified_at',
-        'created_at',
-        'updated_at',
-        'role_id',
-        'deleted_at',
-        'phone_number',
-        'address',
-        'city_id',
-        'google_id',
-        'github_id',
-        'pivot',
-        'role_id'
-    ];
+    private static $otpExpiresInMinutes = 60 * 24;
 
+    public static $tokenExpiresInDays = 30;
 
-    protected $eventHiddens = [
-        'created_at',
-        'updated_at',
-        'deleted_at',
-        'pivot',
-    ];
-
-    protected $clubHiddens = [
-        'created_at',
-        'updated_at',
-        'deleted_at',
-        'email',
-        'phone_number',
-        'pivot',
-    ];
-
+    // public static function getTokenExpiresInDays()
+    // {
+    //     return self::$tokenExpiresInDays;
+    // }
     public function getPerPage()
     {
         return $this->per_page;
+    }
+
+    public static function getOtpExpiresInMinutes()
+    {
+        return self::$otpExpiresInMinutes;
     }
 }

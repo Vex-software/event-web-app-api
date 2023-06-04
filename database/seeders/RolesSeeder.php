@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Role;
+use Illuminate\Database\Seeder;
 
 class RolesSeeder extends Seeder
 {
@@ -29,7 +28,7 @@ class RolesSeeder extends Seeder
         ];
 
         foreach ($roles as $role) {
-            if (!Role::where('slug', $role['slug'])->exists()) {
+            if (! Role::where('slug', $role['slug'])->exists()) {
                 Role::create([
                     'name' => $role['name'],
                     'slug' => $role['slug'],

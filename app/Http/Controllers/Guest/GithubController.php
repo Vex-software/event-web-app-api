@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Guest;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
 class GithubController extends Controller
@@ -32,11 +31,8 @@ class GithubController extends Controller
     //         'redirect_uri' => env('GITHUB_CALLBACK_URL'),
     //     ]);
 
-
     //     $accessToken = explode('=', $response->body())[1];
     //     $accessToken = explode('&', $accessToken)[0];
-
-
 
     //     $user = Http::withHeaders([
     //         'Authorization' => "Bearer $accessToken",

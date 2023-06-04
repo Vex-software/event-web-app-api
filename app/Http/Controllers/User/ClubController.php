@@ -3,72 +3,156 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\SearchRequest;
+use App\Http\Resources\ClubResource;
+use App\Http\Resources\EventResource;
+use App\Http\Resources\UserResource;
 use App\Models\Club;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
 
 class ClubController extends Controller
 {
     /**
      * Display a listing of the resource.
-     * @return JsonResponse
+     *
      * @throws \Exception
      */
-    public function index(): JsonResponse
+    public function index(SearchRequest $request): JsonResponse
     {
-        $clubs = Club::paginate($this->getPerPage());
+        $query = new Club();
+        if ($request->has('q')) {
+            $searchKeyword = $request->input('q');
+            $query = $query->where(function ($query) use ($searchKeyword) {
+                $query->where('name', 'like', '%'.$searchKeyword.'%')
+                    ->orWhere('description', 'like', '%'.$searchKeyword.'%')
+                    ->orWhere('title', 'like', '%'.$searchKeyword.'%');
+            });
+        }
+
+        $order = $request->input('order', 'asc');
+
+        if ($request->has('orderBy')) {
+            $orderBy = $request->input('orderBy');
+            $validColumns = ['name', 'created_at', 'updated_at'];
+
+            if (in_array($orderBy, $validColumns)) {
+                $clubs = $query->orderBy($orderBy, $order)->paginate($this->getPerPage());
+            } else {
+                $clubs = $query->paginate($this->getPerPage());
+            }
+        } else {
+            $clubs = $query->paginate($this->getPerPage());
+        }
+
+        $clubs->getCollection()->transform(function ($club) {
+            return (new ClubResource($club))->toArray(request());
+        });
+
         return response()->json($clubs, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Display the specified resource.
-     * @param int $id
+     *
      * @return Response
+     *
      * @throws \Exception
      */
     public function show(int $id): JsonResponse
     {
-        $club = Club::findOrFail($id);
-        $club->load('users', 'manager', 'events');
-        return response()->json($club, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
+        $club = Club::find($id);
+        if (! $club) {
+            return response()->json(['message' => 'Kulüp bulunamadı.'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        return response()->json(new ClubResource($club), JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Get users of the club.
-     * @param int $clubId
+     *
      * @return Response
+     *
      * @throws \Exception
      */
-    public function clubUsers(int $clubId): JsonResponse
+    public function clubUsers(int $clubId, SearchRequest $request): JsonResponse
     {
         $club = Club::find($clubId);
-        if (!$club) {
+        if (! $club) {
             return response()->json(['message' => 'Kulüp bulunamadı.'], JsonResponse::HTTP_NOT_FOUND);
         }
-        $clubUsers = $club->users();
-        return response()->json($clubUsers, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
+
+        $query = $club->users();
+
+        if ($request->has('q')) {
+            $searchKeyword = $request->input('q');
+            $query->where('name', 'like', '%'.$searchKeyword.'%');
+        }
+
+        $order = $request->input('order', 'asc');
+        $orderBy = $request->input('orderBy');
+
+        if (in_array($orderBy, ['name', 'created_at', 'updated_at'])) {
+            $query->orderBy($orderBy, $order);
+        }
+
+        $perPage = $this->getPerPage();
+
+        $users = $query->paginate($perPage);
+
+        $users->getCollection()->transform(function ($user) {
+            return (new UserResource($user))->toArray(request());
+        });
+
+        return response()->json($users, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Get events of the club.
-     * @param int $clubId
-     * @return JsonResponse
+     *
      * @throws \Exception
      */
-    public function clubEvents(int $clubId): JsonResponse
+    public function clubEvents(int $clubId, SearchRequest $request): JsonResponse
     {
         $club = Club::findOrFail($clubId);
-        $clubEvents = $club->events()->paginate($this->getPerPage());
-        return response()->json($clubEvents, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
+
+        $query = $club->events();
+
+        if ($request->has('q')) {
+            $searchKeyword = $request->input('q');
+            $query->where(function ($query) use ($searchKeyword) {
+                $query->where('name', 'like', '%'.$searchKeyword.'%')
+                    ->orWhere('title', 'like', '%'.$searchKeyword.'%')
+                    ->orWhere('description', 'like', '%'.$searchKeyword.'%');
+            });
+        }
+
+        $order = $request->input('order', 'asc');
+        $orderBy = $request->input('orderBy');
+
+        if (in_array($orderBy, ['name', 'start_time', 'end_time'])) {
+            $query->orderBy($orderBy, $order);
+        }
+
+        $perPage = $this->getPerPage();
+        $clubEvents = $query->paginate($perPage);
+
+        $transformedEvents = EventResource::collection($clubEvents);
+
+        if (count($transformedEvents) < 1) {
+            return response()->json(['message' => 'Kulübe ait etkinlik bulunamadı.'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        return response()->json($transformedEvents, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Get photo of the club.
-     * @param int $id
+     *
+     * @param  int  $id
      */
     public function clubPhoto($id)
     {
@@ -79,17 +163,18 @@ class ClubController extends Controller
         }
 
         if (filter_var($path, FILTER_VALIDATE_URL)) {
-            return $path;
-            $type = get_headers($path, 1)["Content-Type"];
+            $type = get_headers($path, 1)['Content-Type'];
+
             return response()->stream(function () use ($path) {
                 echo file_get_contents($path);
-            }, 200, ['Content-Type' => $type]);
+            }, JsonResponse::HTTP_OK, ['Content-Type' => $type]);
         } else {
-            if (!File::exists($path)) {
+            if (! File::exists($path)) {
                 return response()->json(['error' => 'Fotoğraf bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
             }
 
             $type = File::mimeType($path);
+
             return response()->file($path, ['Content-Type' => $type]);
         }
     }

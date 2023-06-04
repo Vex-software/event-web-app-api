@@ -2,9 +2,10 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
-use App\Models\User;
 use App\Models\Role;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Club>
  */
@@ -18,9 +19,8 @@ class ClubFactory extends Factory
     public function definition(): array
     {
         $manager = User::factory()->create([ // create a user with role club_manager
-            'role_id' => Role::where('slug', 'club_manager')->first()->id
+            'role_id' => Role::where('slug', 'club_manager')->first()->id,
         ]);
-
 
         return [
             'name' => $this->faker->company(),

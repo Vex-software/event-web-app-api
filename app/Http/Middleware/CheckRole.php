@@ -16,10 +16,10 @@ class CheckRole
     public function handle(Request $request, Closure $next, $role): Response
     {
         $userRole = auth()->user()->role->slug;
-        if($userRole != $role){
+        if ($userRole != $role) {
             return response()->json(['error' => 'Yetkiniz Yok'], 403);
         }
-        
+
         return $next($request);
     }
 }

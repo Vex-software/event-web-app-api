@@ -2,18 +2,20 @@
 
 namespace App\Jobs;
 
+use App\Models\Event;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Carbon\Carbon;
-use App\Models\Event;
 
 class DeleteExpiredEvents implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
 
     /**
      * Create a new job instance.
@@ -29,6 +31,6 @@ class DeleteExpiredEvents implements ShouldQueue
     public function handle(): void
     {
         Event::where('end_time', '<', Carbon::now()->format('Y-m-d H:i:s'))
-        ->delete();
+            ->delete();
     }
 }

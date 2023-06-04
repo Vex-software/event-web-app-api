@@ -41,7 +41,6 @@ class ServeCommand extends BaseServeCommand
     {
         $port = $this->input->getOption('port');
 
-
         if (is_null($port)) {
             [, $port] = $this->getHostAndPort();
         }

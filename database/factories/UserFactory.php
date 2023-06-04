@@ -2,11 +2,12 @@
 
 namespace Database\Factories;
 
+use App\Models\Role;
+use App\Models\Status;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Hash;
-use App\Models\Role;
-use App\Models\User;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
@@ -29,12 +30,29 @@ class UserFactory extends Factory
 
             // 'role_id' => $this->faker->numberBetween(1,3),
             // 'role_id' => Role::inRandomOrder()->first()->id,
+            'status_id' => function () {
+                return Status::inRandomOrder()->first()->id;
+            },
 
             'profile_photo_path' => $this->faker->imageUrl(640, 480, 'people', true),
             'address' => $this->faker->address(),
-            'city_id' => $this->faker->numberBetween(1,81),
-            'email_verified_at' => now(),
-            'password' => Hash::make('password'),
+            'city_id' => $this->faker->numberBetween(1, 81),
+            'password' => bcrypt('password'),
+
+            'email_verified_at' => Carbon::now(),
+            'trust_score' => $this->faker->randomFloat(1, 0, 100),
+            'access_token' => Str::random(32),
+            'access_token_expires_at' => Carbon::now()->addHours(24),
+
+            'last_login_at' => Carbon::now(),
+            'last_activity_at' => Carbon::now(),
+            'phone_number_verifed_at' => Carbon::now(),
+            'role_id' => 1,
+            'google_id' => null,
+            'social_media_id' => null,
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+            'deleted_at' => null,
             // 'remember_token' => Str::random(20),
         ];
     }
