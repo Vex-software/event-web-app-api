@@ -10,7 +10,7 @@ class SocialMediaLink extends Model
     use HasFactory;
 
     protected $fillable = [
-        'type', 'link'
+        'type', 'link',
     ];
 
     protected $hidden = [
@@ -28,6 +28,4 @@ class SocialMediaLink extends Model
     {
         return $this->belongsTo(Club::class);
     }
-
-
 }

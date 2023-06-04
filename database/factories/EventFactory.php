@@ -3,9 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\Club;
-
-use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\EventCategory;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Event>
@@ -29,7 +28,7 @@ class EventFactory extends Factory
             'image' => $this->faker->imageUrl(640, 480, 'animals', true),
             'quota' => $this->faker->numberBetween(0, 2000),
             'club_id' => Club::factory()->create()->id,
-            'category_id' => EventCategory::factory()->create()->id
+            'category_id' => EventCategory::factory()->create()->id,
         ];
     }
 }

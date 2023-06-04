@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Club extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
+    use SoftDeletes;
 
     protected $dates = ['deleted_at'];
 
@@ -36,8 +37,6 @@ class Club extends Model
         'pivot',
     ];
 
-
-
     public function users()
     {
         return $this->belongsToMany(User::class);
@@ -52,7 +51,6 @@ class Club extends Model
     {
         return $this->belongsTo(User::class, 'manager_id');
     }
-
 
     public function socialMediaLink()
     {
@@ -73,8 +71,6 @@ class Club extends Model
         // }
         return route('getClubPhoto', ['id' => $this->id]);
     }
-
-   
 
     // public function getWebsiteAttribute($value)
     // {

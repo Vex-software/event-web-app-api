@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\EventCategory;
 
 class Event extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
+    use SoftDeletes;
 
     protected $dates = ['deleted_at'];
 
@@ -43,11 +43,8 @@ class Event extends Model
         'pivot',
     ];
 
-    protected static $hiddenClubFields = ['phone_number', 'email', 'created_at', 'updated_at', 'deleted_at'];
-
-
-    /* Bir etkinligin sadece bir tane yaraticisi/sahibi var. 
-    *  Ilerde club_event tablosu olusturulup coga cok iliski yaplabilir 
+    /* Bir etkinligin sadece bir tane yaraticisi/sahibi var.
+    *  Ilerde club_event tablosu olusturulup coga cok iliski yaplabilir
     */
     public function club()
     {
@@ -63,6 +60,7 @@ class Event extends Model
     {
         return $this->belongsTo(EventCategory::class, 'category_id');
     }
+
     public function getImageAttribute($value)
     {
         return route('getEventPhoto', ['id' => $this->id]);

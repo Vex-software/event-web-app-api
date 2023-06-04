@@ -3,17 +3,22 @@
 namespace App\Http\Controllers\ClubManager;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\SearchRequest;
+use App\Http\Resources\ClubResource;
+use App\Http\Resources\EventResource;
+use App\Http\Resources\UserResource;
 use App\Models\Event;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class ClubManagerController extends Controller
 {
     /**
      * Display a listing of the resource.
+     *
      * @return Event[]|Collection|Response
      */
     public function index(): JsonResponse
@@ -21,14 +26,15 @@ class ClubManagerController extends Controller
         $user = auth()->user();
         $club = $user->managerOfClub;
         $events = $club->events;
-        return response()->json([
-            'events' => $events,
-        ], 200);
+
+        $transformedEvents = EventResource::collection($events);
+
+        return response()->json($transformedEvents, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Create a new event.
-     * @param Request $request
+     *
      * @return JsonResponse
      */
     public function createEvent(Request $request)
@@ -82,10 +88,9 @@ class ClubManagerController extends Controller
         $user = auth()->user();
         $club = $user->managerOfClub;
 
-
         $event = Event::find($id);
 
-        if (!$event) {
+        if (! $event) {
             return response()->json([
                 'message' => 'Kulüp Bulunamadı',
             ], 403);
@@ -142,50 +147,49 @@ class ClubManagerController extends Controller
         $user = auth()->user();
         $club = $user->managerOfClub->load('users', 'events');
 
-        return response()->json([
-            'club' => $club
-        ], 200);
+        $transformedClub = new ClubResource($club);
+
+        return response()->json($transformedClub, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-
-    public function getClubMembers()
+    public function myClubMembers(SearchRequest $request)
     {
+        $paginate = $request->paginate ?? $this->getPerPage();
         $user = auth()->user();
         $club = $user->managerOfClub;
 
-        $users = $club->users;
+        $users = $club->users()->paginate($paginate);
 
-        return response()->json([
-            'users' => $users,
-        ], 200);
+        $users->getCollection()->transform(function ($user) {
+            return new UserResource($user);
+        });
+
+        return response()->json($users, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-
-    public function myClubEvents()
+    public function myClubEvents(SearchRequest $request)
     {
+        $paginate = $request->paginate ?? $this->getPerPage();
         $user = auth()->user();
         $club = $user->managerOfClub;
 
-        $events = $club->events;
+        $events = $club->events()->paginate($paginate);
 
-        return response()->json([
-            'events' => $events,
-        ], 200);
+        $events->getCollection()->transform(function ($event) {
+            return new EventResource($event);
+        });
+
+        return response()->json($events, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
-
 
     public function deleteEvent($id)
     {
-        $user = auth()->user();
-        $club = $user->managerOfClub;
-
         $event = Event::findOrFail($id);
-
         $event->delete();
 
         return response()->json([
             'message' => 'Etkinlik başarıyla silindi.',
-        ], 200);
+        ], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function deleteClubMember($id)
@@ -198,7 +202,7 @@ class ClubManagerController extends Controller
         if ($member->club_id != $club->id) {
             return response()->json([
                 'message' => 'Bu kulübe ait bir üye değil.',
-            ], 403);
+            ], JsonResponse::HTTP_BAD_REQUEST, [], JSON_UNESCAPED_UNICODE);
         }
 
         $member->club_id = null;
@@ -206,7 +210,7 @@ class ClubManagerController extends Controller
 
         return response()->json([
             'message' => 'Üye başarıyla kulüpten çıkarıldı.',
-        ], 200);
+        ], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function updateClub(Request $request)
@@ -215,12 +219,12 @@ class ClubManagerController extends Controller
         $club = $user->managerOfClub;
 
         $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:255', 'unique:clubs,name,' . $club->id],
+            'name' => ['required', 'string', 'max:255', 'unique:clubs,name,'.$club->id],
             'title' => 'required|string',
             'description' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:clubs,email,' . $club->id],
-            'phone_number' => ['required', 'string', 'max:255', 'unique:clubs,phone_number,' . $club->id],
-            'address' => ['required', 'string', 'max:255', 'unique:clubs,address,' . $club->id],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:clubs,email,'.$club->id],
+            'phone_number' => ['required', 'string', 'max:255', 'unique:clubs,phone_number,'.$club->id],
+            'address' => ['required', 'string', 'max:255', 'unique:clubs,address,'.$club->id],
             'website' => 'nullable',
             'founded_year' => 'nullable|date',
             'city_id' => ['required', 'integer', 'exists:cities,id'],
@@ -263,11 +267,10 @@ class ClubManagerController extends Controller
         }
         $club->save();
 
-
         return response()->json([
             'message' => 'Kulüp başarıyla güncellendi.',
             'club' => $club,
-        ], 200);
+        ], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function deletePhoto()
@@ -283,6 +286,6 @@ class ClubManagerController extends Controller
 
         return response()->json([
             'message' => 'Kulüp logosu başarıyla silindi.',
-        ], 200);
+        ], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 }

@@ -2,81 +2,118 @@
 
 namespace App\Http\Controllers\User;
 
-use App\Http\Requests\User\UserUpdatePasswordRequest;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\User\UserResendEmailRequest;
-use App\Http\Requests\User\UserResetPasswordRequest;
-use App\Http\Requests\User\UserUpdateProfileRequest;
-use App\Http\Requests\User\UserVerifyEmailRequest;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\DB;
+use App\Http\Requests\SearchRequest;
+use App\Http\Requests\User\UpdatePasswordRequest;
+use App\Http\Requests\User\UpdateProfileRequest;
+use App\Http\Resources\ClubResource;
+use App\Http\Resources\EventResource;
+use App\Http\Resources\UserResource;
+use App\Models\Club;
+use App\Models\Event;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use App\Models\Event;
-use App\Models\Club;
-use App\Models\User;
 
 class UserController extends Controller
 {
     /**
      * Get all users
-     * @param Request $request
-     * @return JsonResponse
+     *
+     * @param  Request  $request
      */
-    public function index(Request $request): JsonResponse
+    public function index(SearchRequest $request): JsonResponse
     {
-        $users = User::paginate($this->getPerPage());
+        $order = $request->input('order', 'asc');
+        $orderBy = $request->input('orderBy', 'created_at');
+        $query = User::orderBy($orderBy, $order);
+
+        if ($request->has('q')) {
+            $searchKeyword = $request->input('q');
+            $query->where(function ($query) use ($searchKeyword) {
+                $query->where('name', 'like', '%'.$searchKeyword.'%');
+            });
+        }
+
+        $users = $query->paginate($this->getPerPage());
+
+        $users->getCollection()->transform(function ($user) {
+            return (new UserResource($user))->toArray(request());
+        });
+
         return response()->json($users, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Show a specific user
-     * @param int $id
-     * @return JsonResponse
      */
     public function show(int $id): JsonResponse
     {
         $user = User::find($id);
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Kullanıcı Bulunamadı']);
         }
         $user->load('clubs');
-        return response()->json($user, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
+
+        return response()->json(new UserResource($user), JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Get user's clubs
-     * @param int $userId
-     * @return JsonResponse
      */
-    public function userClubs(int $userId): JsonResponse
+    public function userClubs(int $userId, SearchRequest $request): JsonResponse
     {
         $user = User::find($userId);
-        $clubs = $user->clubs()->paginate($this->getPerPage());
+        if (! $user) {
+            return response()->json(['error' => 'Kullanıcı bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
+        }
+
+        $query = $user->clubs();
+
+        if ($request->has('q')) {
+            $searchKeyword = $request->input('q');
+            $query->where('name', 'like', '%'.$searchKeyword.'%');
+        }
+
+        $order = $request->input('order', 'asc');
+        $orderBy = $request->input('orderBy');
+
+        if (in_array($orderBy, ['name', 'created_at', 'updated_at'])) {
+            $query->orderBy($orderBy, $order);
+        }
+
+        $perPage = $this->getPerPage();
+
+        $clubs = $query->paginate($perPage);
+
+        $clubs->getCollection()->transform(function ($club) {
+            return (new ClubResource($club))->toArray(request());
+        });
+
+        // Dönüştürülmüş kulüpleri JSON formatında dönüyoruz.
         return response()->json($clubs, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Join a club
-     * @param int $clubId
-     * @return JsonResponse
      */
     public function joinClub(int $clubId): JsonResponse
     {
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Kullanıcı bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
         $club = Club::find($clubId);
-        if (!$club) {
+        if (! $club) {
             return response()->json(['error' => 'Kulüp bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
-
 
         $clubUsers = $club->users()->pluck('users.id')->toArray();
         if (in_array($user->id, $clubUsers)) {
@@ -85,6 +122,7 @@ class UserController extends Controller
 
         try {
             $club->users()->attach($user->id);
+
             return response()->json(['success' => 'Kullanıcı Kulübe katıldı'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
             return response()->json(['error' => $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR, [], JSON_UNESCAPED_UNICODE);
@@ -93,28 +131,27 @@ class UserController extends Controller
 
     /**
      * Leave a club
-     * @param int $clubId
-     * @return JsonResponse
      */
     public function leaveClub(int $clubId): JsonResponse
     {
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Kullanıcı bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
         $club = Club::find($clubId);
-        if (!$club) {
+        if (! $club) {
             return response()->json(['error' => 'Kulüp bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
         $clubUsers = $club->users()->pluck('users.id')->toArray();
-        if (!in_array($user->id, $clubUsers)) {
+        if (! in_array($user->id, $clubUsers)) {
             return response()->json(['error' => 'Kullanıcı zaten bu kulüpte değil'], JsonResponse::HTTP_CONFLICT, [], JSON_UNESCAPED_UNICODE);
         }
 
         try {
             $club->users()->detach($user->id);
+
             return response()->json(['success' => 'Kullanıcı Kulüpten ayrıldı'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
             return response()->json(['error' => $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR, [], JSON_UNESCAPED_UNICODE);
@@ -123,18 +160,16 @@ class UserController extends Controller
 
     /**
      * Join an event
-     * @param int $eventId
-     * @return JsonResponse
      */
     public function joinEvent(int $eventId): JsonResponse
     {
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Kullanıcı bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
         $event = Event::find($eventId);
-        if (!$event) {
+        if (! $event) {
             return response()->json(['error' => 'Etkinlik bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
@@ -146,6 +181,7 @@ class UserController extends Controller
 
         try {
             $event->users()->attach($user->id);
+
             return response()->json(['success' => 'Kullanıcı Etkinliğe katıldı'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
             return response()->json(['error' => $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR, [], JSON_UNESCAPED_UNICODE);
@@ -154,28 +190,27 @@ class UserController extends Controller
 
     /**
      * Leave an event
-     * @param int $eventId
-     * @return JsonResponse
      */
     public function leaveEvent(int $eventId): JsonResponse
     {
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Kullanıcı bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
         $event = Event::find($eventId);
-        if (!$event) {
+        if (! $event) {
             return response()->json(['error' => 'Etkinlik bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
         $eventUsers = $event->users()->pluck('users.id')->toArray();
-        if (!in_array($user->id, $eventUsers)) {
+        if (! in_array($user->id, $eventUsers)) {
             return response()->json(['error' => 'Kullanıcı zaten bu etkinlikte değil'], JsonResponse::HTTP_CONFLICT, [], JSON_UNESCAPED_UNICODE);
         }
 
         try {
             $event->users()->detach($user->id);
+
             return response()->json(['success' => 'Kullanıcı Etkinlikten ayrıldı'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
             return response()->json(['error' => $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR, [], JSON_UNESCAPED_UNICODE);
@@ -184,23 +219,24 @@ class UserController extends Controller
 
     /**
      * Update user password
-     * @param Request $request
-     * @return JsonResponse
+     *
+     * @param  Request  $request
      */
-    public function updatePassword(UserUpdatePasswordRequest $request): JsonResponse
+    public function updatePassword(UpdatePasswordRequest $request): JsonResponse
     {
         $user = User::find(auth()->user()->id);
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Kullanıcı bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
-        if (!Hash::check($request->old_password, $user->password)) {
+        if (! Hash::check($request->old_password, $user->password)) {
             return response()->json(['error' => 'Eski şifrenizi yanlış girdiniz'], JsonResponse::HTTP_BAD_REQUEST, [], JSON_UNESCAPED_UNICODE);
         }
 
         try {
             $user->password = Hash::make($request->password);
             $user->save();
+
             return response()->json(['success' => 'Şifre güncellendi'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
             return response()->json(['error' => $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR, [], JSON_UNESCAPED_UNICODE);
@@ -209,20 +245,20 @@ class UserController extends Controller
 
     /**
      * Update user profile
-     * @param Request $request
-     * @return JsonResponse
+     *
+     * @param  Request  $request
      */
-    public function updateProfile(UserUpdateProfileRequest $request): JsonResponse
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
         $user = User::find(auth()->user()->id);
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Kullanıcı bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
         $phoneNumber = preg_replace('/[^0-9]/', '', $this->input('phone_number'));
 
-        if (Str::startsWith($phoneNumber, "90")) {
-            $phoneNumber = "+90" . substr($phoneNumber, -10);
+        if (Str::startsWith($phoneNumber, '90')) {
+            $phoneNumber = '+90'.substr($phoneNumber, -10);
         }
 
         $phoneNumber = preg_replace('/(\d{2})(\d{3})(\d{3})(\d{2})(\d{2})/', '$1-$2-$3-$4-$5', $phoneNumber);
@@ -231,14 +267,18 @@ class UserController extends Controller
         $user->surname = $request->input('surname');
         $user->phone_number = $phoneNumber;
         $user->email = $request->input('email');
-        if (null != ($request->input('address'))) $user->address = $request->input('address'); // adress nullable kontrolü
-        if (null != ($request->input('city'))) $user->city = $request->input('city'); // city nullable kontrolü
+        if (null != ($request->input('address'))) {
+            $user->address = $request->input('address');
+        } // adress nullable kontrolü
+        if (null != ($request->input('city'))) {
+            $user->city = $request->input('city');
+        } // city nullable kontrolü
         if ($request->hasFile('photo')) {
             $file = $request->file('photo');
-            if (!empty($file)) {
-                $filename = time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+            if (! empty($file)) {
+                $filename = time().'_'.Str::random(8).'.'.$file->getClientOriginalExtension();
                 $path = $file->storeAs('users/photos', $filename);
-                if (!empty($user->profile_photo_path)) {
+                if (! empty($user->profile_photo_path)) {
                     Storage::delete($user->profile_photo_path);
                 }
                 $user->profile_photo_path = $filename;
@@ -251,13 +291,12 @@ class UserController extends Controller
 
     /**
      * Delete authenticated user profile photo
-     * @return JsonResponse
      */
     public function deletePhoto(): JsonResponse
     {
         $user = User::find(auth()->user()->id);
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Kullanıcı bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
@@ -267,6 +306,7 @@ class UserController extends Controller
             }
             $user->profile_photo_path = null;
             $user->save();
+
             return response()->json(['success' => 'Profil fotoğrafı silindi'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
         } else {
             return response()->json(['error' => 'Profil fotoğrafı bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
@@ -275,19 +315,39 @@ class UserController extends Controller
 
     /**
      * Get joined events of user
-     * @param $userId
-     * @return JsonResponse
      */
-    public function userEvents($userId): JsonResponse
+    public function userEvents(int $userId, SearchRequest $request): JsonResponse
     {
-        $events = User::find($userId)->events()->paginate($this->getPerPage());
-        return response()->json($events, 200);
+        $user = User::findOrFail($userId);
+
+        $query = $user->events();
+
+        if ($request->has('q')) {
+            $searchKeyword = $request->input('q');
+            $query->where(function ($query) use ($searchKeyword) {
+                $query->where('name', 'like', '%'.$searchKeyword.'%')
+                    ->orWhere('title', 'like', '%'.$searchKeyword.'%')
+                    ->orWhere('description', 'like', '%'.$searchKeyword.'%');
+            });
+        }
+
+        $order = $request->input('order', 'asc');
+        $orderBy = $request->input('orderBy');
+
+        if (in_array($orderBy, ['name', 'start_time', 'end_time'])) {
+            $query->orderBy($orderBy, $order);
+        }
+
+        $perPage = $this->getPerPage();
+        $events = $query->paginate($perPage);
+
+        $events->getCollection()->transform(function ($event) {
+            return new EventResource($event);
+        });
+
+        return response()->json($events, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-    /**
-     * Get Authenticated user profile photo
-     * @return JsonResponse
-     */
     public function myPhoto()
     {
         $path = DB::table('users')->where('id', auth()->user()->id)->value('profile_photo_path');
@@ -297,38 +357,27 @@ class UserController extends Controller
         }
 
         if (filter_var($path, FILTER_VALIDATE_URL)) {
-            return $path;
-            $type = get_headers($path, 1)["Content-Type"];
-            return response()->stream(function () use ($path) {
-                echo file_get_contents($path);
-            }, 200, ['Content-Type' => $type]);
+            return response()->json(['photo_url' => $path]);
         } else {
-            if (!File::exists($path)) {
+            if (! File::exists($path)) {
                 return response()->json(['error' => 'Fotoğraf bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
             }
 
             $type = File::mimeType($path);
+
             return response()->file($path, ['Content-Type' => $type]);
         }
     }
 
-    /**
-     * Get Authenticated user profile
-     * Not : Kullanıcı kendi bilgilerinin tamamını görebilir
-     * @return JsonResponse
-     */
     public function whoAmI(): JsonResponse
     {
-        $user = User::find(auth()->user()->id);
+        $user = auth()->user();
 
-        return response()->json($user->getAllAttributes(), JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
+        $transformedUser = new UserResource($user);
+
+        return response()->json($transformedUser, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-    /**
-     * Get user profile photo
-     * @param $id
-     * @return JsonResponse|StreamedResponse
-     */
     public function userPhoto($id)
     {
         $path = DB::table('users')->where('id', $id)->value('profile_photo_path');
@@ -338,115 +387,73 @@ class UserController extends Controller
         }
 
         if (filter_var($path, FILTER_VALIDATE_URL)) {
-            return $path;
-            $type = get_headers($path, 1)["Content-Type"];
+            dd($path);
+            $type = get_headers($path, 1)['Content-Type'];
+
             return response()->stream(function () use ($path) {
                 echo file_get_contents($path);
             }, 200, ['Content-Type' => $type]);
         } else {
-            if (!File::exists($path)) {
+            if (! Storage::exists('public/'.$path)) {
+                dd($path);
+
                 return response()->json(['error' => 'Fotoğraf bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
             }
 
-            $type = File::mimeType($path);
-            return response()->file($path, ['Content-Type' => $type]);
+            $type = Storage::mimeType('public/'.$path);
+
+            return response()->file(Storage::path('public/'.$path), ['Content-Type' => $type]);
         }
+    }
+
+    public function joinedClubs(SearchRequest $request): JsonResponse
+    {
+        $user = User::find(auth()->user()->id);
+        $order = $request->input('order', 'asc');
+        $orderBy = $request->input('orderBy', 'created_at');
+        $paginate = $request->input('paginate', $this->getPerPage());
+
+        $clubs = $user->clubs()->orderBy($orderBy, $order);
+
+        if ($request->has('q')) {
+            $searchKeyword = $request->input('q');
+            $clubs->where(function ($query) use ($searchKeyword) {
+                $query->where('name', 'like', '%'.$searchKeyword.'%');
+            });
+        }
+
+        $clubs = $clubs->paginate($paginate);
+        $clubs->getCollection()->transform(function ($club) {
+            return (new ClubResource($club))->toArray(request());
+        });
+
+        return response()->json($clubs, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
-     * Verify email
-     * @param Request $request
-     * @return JsonResponse
+     * Get Authenticated user joined events
      */
-    public function verifyEmail(UserVerifyEmailRequest $request): JsonResponse
+    public function joinedEvents(SearchRequest $request): JsonResponse
     {
-        $user = User::find($request->id);
-        if (!$user) {
-            return response()->json(['error' => 'Kullanıcı bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
+        $user = User::find(auth()->user()->id);
+        $order = $request->input('order', 'asc');
+        $orderBy = $request->input('orderBy', 'created_at');
+        $paginate = $request->input('paginate', $this->getPerPage());
+
+        $events = $user->events()->orderBy($orderBy, $order);
+
+        if ($request->has('q')) {
+            $searchKeyword = $request->input('q');
+            $events->where(function ($query) use ($searchKeyword) {
+                $query->where('name', 'like', '%'.$searchKeyword.'%');
+            });
         }
 
-        if (!hash_equals((string) $request->hash, sha1($user->getEmailForVerification()))) {
-            return response()->json(['error' => 'Geçersiz doğrulama bağlantısı'], JsonResponse::HTTP_BAD_REQUEST, [], JSON_UNESCAPED_UNICODE);
-        }
+        $events = $events->paginate($paginate);
+        $events->getCollection()->transform(function ($club) {
+            return (new ClubResource($club))->toArray(request());
+        });
 
-        if ($user->hasVerifiedEmail()) {
-            return response()->json(['error' => 'E-posta adresi zaten doğrulanmış'], JsonResponse::HTTP_CONFLICT, [], JSON_UNESCAPED_UNICODE);
-        }
-
-        $user->markEmailAsVerified();
-
-        return response()->json(['success' => 'E-posta adresiniz başarıyla doğrulandı'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
+        return response()->json($events, 200, [], JSON_UNESCAPED_UNICODE);
     }
-
-    /**
-     * Resend email
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function resendEmail(UserResendEmailRequest $request): JsonResponse
-    {
-        if ($request->user()->hasVerifiedEmail()) {
-            return response()->json(['message' => 'Kullanıcı zaten onaylanmış.'], JsonResponse::HTTP_CONFLICT, [], JSON_UNESCAPED_UNICODE);
-        }
-
-        $request->user()->sendEmailVerificationNotification();
-
-        return response()->json(['message' => 'Doğrulama e-postası gönderildi.'], 200, [], JSON_UNESCAPED_UNICODE);
-    }
-
-    /**
-     * Reset password
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function resetPassword(UserResetPasswordRequest $request): JsonResponse
-    {
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
-
-        if ($status === Password::RESET_LINK_SENT) {
-            return response()->json(['message' => 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
-        }
-        return response()->json(['error' => 'E-posta gönderimi başarısız oldu.'], JsonResponse::HTTP_INTERNAL_SERVER_ERROR, [], JSON_UNESCAPED_UNICODE);
-    }
-
-    // /**
-    //  * Get Authenticated user joined clubs
-    //  * @return JsonResponse
-    //  */
-    // public function joinedClubs(): JsonResponse
-    // {
-    //     $user = User::find(auth()->user()->id);
-    //     $clubs = $user->clubs()->with('manager')->paginate(6);
-
-    //     return response()->json($clubs, 200, [], JSON_UNESCAPED_UNICODE);
-    // }
-
-    // /**
-    //  * Get Authenticated user joined events
-    //  * @return JsonResponse
-    //  */
-    // public function joinedEvents(): JsonResponse
-    // {
-    //     $user = User::find(auth()->user()->id);
-    //     $events = $user->events()->with('eventCategory')->with('club')->paginate(6);
-
-    //     // $events->getCollection()->transform(function ($event) {
-    //     //     return [
-    //     //         'id' => $event->id,
-    //     //         'name' => $event->name,
-    //     //         'category' => $event->eventCategory->name,
-    //     //         'club' => $event->club->name,
-    //     //         'start_date' => $event->start_date,
-    //     //         'end_date' => $event->end_date,
-    //     //         'created_at' => $event->created_at,
-    //     //         'updated_at' => $event->updated_at,
-    //     //         'deleted_at' => $event->deleted_at,
-    //     //     ];
-    //     // });
-
-
-    //     return response()->json($events, 200, [], JSON_UNESCAPED_UNICODE);
-    // }
 }

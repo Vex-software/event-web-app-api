@@ -72,6 +72,8 @@ return [
 
     'timezone' => 'UTC',
 
+    'request_throttle_interval' => env('REQUEST_THROTTLE_INTERVAL', 6),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
@@ -109,7 +111,7 @@ return [
     |
     */
 
-    'faker_locale' => 'tr',
+    'faker_locale' => 'tr_TR',
 
     /*
     |--------------------------------------------------------------------------
@@ -168,6 +170,7 @@ return [
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
+        App\Providers\TelescopeServiceProvider::class,
         Laravel\Passport\PassportServiceProvider::class,
         Laravel\Socialite\SocialiteServiceProvider::class,
     ])->toArray(),

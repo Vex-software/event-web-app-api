@@ -3,25 +3,29 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\JsonResponse;
+use App\Http\Resources\UserResource;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 
 class AdminController extends Controller
 {
-    /**
-     * @return JsonResponse
-     */
     public function users(): JsonResponse
     {
         $users = User::paginate($this->getPerPage());
-        return response()->json($users, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
+
+        $transformedUsers = UserResource::collection($users);
+
+        return response()->json($transformedUsers, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function admins(): JsonResponse
     {
         $adminRole = Role::where('name', 'admin')->first();
         $admins = $adminRole->users()->paginate($this->getPerPage());
-        return response()->json($admins, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
+
+        $transformedAdmins = UserResource::collection($admins);
+
+        return response()->json($transformedAdmins, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 }

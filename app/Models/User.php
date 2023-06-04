@@ -3,17 +3,35 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Passport\HasApiTokens;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens;
+    use HasFactory;
+    use Notifiable;
+    use SoftDeletes;
 
-    protected $dates = ['deleted_at'];
+    protected $dates =
+    [
+        'deleted_at',
+        'email_verified_at',
+        'access_token_expires_at',
+        'last_login_at',
+        'last_activity_at',
+    ];
+
+    // public function sendEmailVerificationNotification()
+    // {
+    //     $this->notify(new VerifyEmail);
+    // }
 
     /**
      * The attributes that are mass assignable.
@@ -38,7 +56,8 @@ class User extends Authenticatable
 
     /**
      * The attributes that should be hidden for serialization.
-     * Not : Bu gizli alanlar her kullanıcıya aittir. 
+     * Not : Bu gizli alanlar her kullanıcıya aittir.
+     *
      * @var array<int, string>
      */
     protected $hidden = [
@@ -56,6 +75,9 @@ class User extends Authenticatable
         'github_id',
         'pivot',
         'role_id',
+        'access_token',
+        'access_token_expires_at',
+
     ];
 
     // Bu Gizli Alanlar sadece Authenticated User'in kendi bilgilerini görmesini engellemek için kullanılır.
@@ -70,40 +92,15 @@ class User extends Authenticatable
         'github_id',
     ];
 
-
-
-    public function getAllAttributes()
+    public function sendEmailVerificationNotification()
     {
-        $allAttributes  = $this->makeVisible($this->getFillable())->toArray();
-        $hiddenForAuthUser = $this->hiddenForAuthUser ?? [];
-
-        if (isset($allAttributes['city_id'])) {
-            $city = $this->city;
-            unset($allAttributes['city_id']);
-            $allAttributes['city'] = $city;
-        }
-
-        if (isset($allAttributes['social_media_id'])) {
-            $social_media = $this->socialMediaLink;
-            unset($allAttributes['social_media_id']);
-            $allAttributes['social_media'] = $social_media;
-        }
-
-        foreach ($hiddenForAuthUser as $attribute) {
-            unset($allAttributes[$attribute]);
-        }
-
-        return $allAttributes;
+        $this->notify(new VerifyEmail); // Doğrulama mailini gönderir
     }
-
-
-
 
     public function isUser()
     {
         return $this->role_id === Role::where('slug', 'user')->first()->id;
     }
-
 
     public function isClubManager()
     {
@@ -114,8 +111,6 @@ class User extends Authenticatable
     {
         return $this->role_id === Role::where('slug', 'admin')->first()->id;
     }
-
-
 
     /**
      * The attributes that should be cast.
@@ -134,11 +129,6 @@ class User extends Authenticatable
     public function events()
     {
         return $this->belongsToMany(Event::class);
-    }
-
-    public function tokens()
-    {
-        return $this->hasMany(\Laravel\Passport\Token::class);
     }
 
     public function managerOfClub()
@@ -166,13 +156,13 @@ class User extends Authenticatable
 
     public function getProfilePhotoPathAttribute($value)
     {
-        if (env('IMAGE_PROCESSING_ON_SERVER')) {
+        if (true) {
             return route('getUserPhoto', ['id' => $this->id]);
         } else {
             if (filter_var($value, FILTER_VALIDATE_URL)) {
                 return $value;
             } else {
-                return asset('storage/' . $value);
+                return asset('storage/'.$value);
             }
         }
     }

@@ -18,6 +18,7 @@ class CheckClubOwnership
         if (auth()->user()->managerOfClub == null) {
             return response()->json(['error' => 'Yöneticisi olduğunuz kulüp bulunamadı. Site yöneticisi ile iletişime geçin'], 403);
         }
+
         return $next($request);
     }
 }

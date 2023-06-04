@@ -2,41 +2,56 @@
 
 namespace App\Http\Controllers\Admin;
 
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\AdminCreateUserRequest;
-use App\Http\Requests\Admin\AdminUpdateUserRequest;
-use App\Http\Requests\Admin\AdminUpdateUserRoleRequest;
+use App\Http\Requests\Admin\User\CreateRequest;
+use App\Http\Requests\Admin\User\UpdateRequest;
+use App\Http\Requests\Admin\User\UpdateRoleRequest;
+use App\Http\Requests\SearchRequest;
+use App\Http\Resources\UserResource;
 use App\Models\Role;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
-
-    public function index()
+    public function index(SearchRequest $request): JsonResponse
     {
-        $users = User::paginate($this->getPerPage());
-        $users->makeVisible($this->userHiddens);
+        $order = $request->input('order', 'asc');
+        $orderBy = $request->input('orderBy', 'created_at');
+        $query = User::orderBy($orderBy, $order);
+
+        if ($request->has('q')) {
+            $searchKeyword = $request->input('q');
+            $query->where(function ($query) use ($searchKeyword) {
+                $query->where('name', 'like', '%'.$searchKeyword.'%');
+            });
+        }
+
+        $users = $query->paginate($this->getPerPage());
+        $users->getCollection()->transform(function ($user) {
+            return (new UserResource($user))->toArray(request());
+        });
+
         return response()->json($users, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-
-    public function show($id)
+    /**
+     * Show a specific user
+     */
+    public function show(int $id): JsonResponse
     {
         $user = User::find($id);
-        if (!$user) {
-            return response()->json(['error' => 'Kullanıcı bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
+        if (! $user) {
+            return response()->json(['message' => 'Kullanıcı Bulunamadı']);
         }
-        $user->makeVisible($this->userHiddens);
-        return response()->json($user, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
+        $user->load('clubs');
+
+        return response()->json(new UserResource($user), JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-    public function createUser(AdminCreateUserRequest $request): JsonResponse
+    public function createUser(CreateRequest $request): JsonResponse
     {
         $user = new User();
         $user->name = $request->name;
@@ -58,23 +73,21 @@ class UserController extends Controller
             if (Storage::exists($user->profile_photo_path)) {
                 Storage::delete($user->profile_photo_path);
             }
-            $photo_name = time() . '.' . $photo->getClientOriginalExtension();
+            $photo_name = time().'.'.$photo->getClientOriginalExtension();
             $slugName = Str::slug($user->name);
             $photo->storeAs("public/user-photos/$id-$slugName/", $photo_name);
 
-            $user->profile_photo_path = "user/photos/$id-$slugName/" . $photo_name;
+            $user->profile_photo_path = "user/photos/$id-$slugName/".$photo_name;
             $user->save();
         }
 
-        $user->makeVisible($this->userHiddens);
         return response()->json($user, JsonResponse::HTTP_CREATED, [], JSON_UNESCAPED_UNICODE);
     }
 
-
-    public function updateUser(AdminUpdateUserRequest $request, $id)
+    public function updateUser(UpdateRequest $request, $id)
     {
         $user = User::find($id);
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Kullanıcı bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
@@ -97,45 +110,43 @@ class UserController extends Controller
             if (Storage::exists($user->profile_photo_path)) {
                 Storage::delete($user->profile_photo_path);
             }
-            $photo_name = time() . '.' . $photo->getClientOriginalExtension();
+            $photo_name = time().'.'.$photo->getClientOriginalExtension();
             $slugName = Str::slug($user->name);
             $photo->storeAs("public/user-photos/$id-$slugName/", $photo_name);
 
-            $user->profile_photo_path = "user/photos/$id-$slugName/" . $photo_name;
+            $user->profile_photo_path = "user/photos/$id-$slugName/".$photo_name;
             $user->save();
         }
 
-        $user->makeVisible($this->userHiddens);
         return response()->json($user, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Update user role.
-     * @param AdminUpdateUserRoleRequest $request
-     * @param int $id
-     * @return JsonResponse
+     *
+     * @param  int  $id
      */
-    public function updateRole(AdminUpdateUserRoleRequest $request, $id): JsonResponse
+    public function updateRole(UpdateRoleRequest $request, $id): JsonResponse
     {
         $user = User::find($id);
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Kullanıcı bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
         $user->role_id = $request->role_id;
         $user->save();
+
         return response()->json(['message' => 'Kullanıcının rolü başarıyla güncellendi.'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
-
     /**
      * Delete user.
-     * @param int $id
-     * @return JsonResponse
+     *
+     * @param  int  $id
      */
     public function deleteUser($id): JsonResponse
     {
         $user = User::withTrashed()->find($id);
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Kullanıcı bulunamadı.'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
 
@@ -143,52 +154,53 @@ class UserController extends Controller
             return response()->json(['error' => 'Kullanıcı zaten silinmiş.'], JsonResponse::HTTP_BAD_REQUEST, [], JSON_UNESCAPED_UNICODE);
         }
         $user->delete();
+
         return response()->json(['message' => 'Kullanıcı başarıyla silindi.'], JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Restore user.
-     * @param int $id
-     * @return JsonResponse
+     *
+     * @param  int  $id
      */
     public function restoreUser($id): JsonResponse
     {
         $user = User::withTrashed()->find($id);
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Kullanıcı bulunamadı'], JsonResponse::HTTP_NOT_FOUND);
         }
 
         if ($user->trashed()) {
             $user->restore();
+
             return response()->json(['message' => 'Kullanıcı başarıyla geri yüklendi'], JsonResponse::HTTP_OK);
         } else {
             return response()->json(['error' => 'Kullanıcı zaten aktif'], JsonResponse::HTTP_BAD_REQUEST);
         }
     }
 
-
     /**
      * Get all deleted users.
-     * @return JsonResponse
      */
     public function deletedUsers(): JsonResponse
     {
         $users = User::onlyTrashed()->paginate($this->getPerPage());
+
         return response()->json($users, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Get spesific deleted user.
-     * @param int $id
-     * @return JsonResponse
+     *
+     * @param  int  $id
      */
     public function deletedUser($id): JsonResponse
     {
         $deletedUser = User::onlyTrashed()->find($id);
-        if (!$deletedUser) {
+        if (! $deletedUser) {
             return response()->json(['error' => 'Kullanıcı bulunamadı'], JsonResponse::HTTP_NOT_FOUND, [], JSON_UNESCAPED_UNICODE);
         }
-        $deletedUser->makeVisible($this->userHiddens);
+
         return response()->json($deletedUser, JsonResponse::HTTP_OK, [], JSON_UNESCAPED_UNICODE);
     }
 }

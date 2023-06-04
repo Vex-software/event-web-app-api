@@ -2,20 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use \Illuminate\Database\Eloquent\Collection;
-use App\Models\User;
 use App\Models\Club;
+use App\Models\User;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
-
 
 class DBController extends Controller
 {
     /**
      * Display a listing of the resource.
+     *
      * @return Club[]|Collection|Response
      */
     public function clubs(): View
@@ -27,16 +26,15 @@ class DBController extends Controller
 
     /**
      * Display All Users.
+     *
      * @return User[]|Collection|Response|View
      */
     public function users(): View
     {
         $users = User::all();
+
         return view('users.index', compact('users'));
     }
-
-
-
 
     public function redirectToGoogle(): RedirectResponse
     {
@@ -58,14 +56,11 @@ class DBController extends Controller
         // Generate a personal access token using Laravel Passport
         $passportToken = $authUser->createToken('authToken')->accessToken;
 
-
         $authUser->token = $passportToken;
-
 
         // return redirect(env('FRONT_APP_URL'))->withCookie(
         //     cookie('jwt', $passportToken, 60 * 24, null, null, false, true)
         // );
-
 
         // Parent pencereye yönlendirme
         return $this->redirectParent($authUser);
@@ -80,7 +75,6 @@ class DBController extends Controller
 
         // Convert PHP object to JSON string
         $json_data = json_encode($data);
-
 
         return "<script>
                     const form = window.opener.document.createElement('form');
@@ -130,7 +124,6 @@ class DBController extends Controller
             // Update the user with the merged attributes
             $authUser->update($newAttributes);
             $authUser->save();
-
 
             return $authUser;
         }
